@@ -39,10 +39,10 @@ export const loadFailures = () => once('failures', async () => {
 export function normaliseResult(r) {
   const events = (Array.isArray(r?.events) ? r.events : [])
     .map((e) => (Array.isArray(e) ? { start: e[0], end: e[1], label: e[2] } : { ...e }))
-    .filter((e) => isFinite(e.start) && isFinite(e.end) && e.label)
+    .filter((e) => Number.isFinite(e.start) && Number.isFinite(e.end) && e.label)
     .map((e, i) => ({ ...e, idx: i }));
-  const risk = (Array.isArray(r?.risk) ? r.risk : []).filter((p) => Array.isArray(p) && isFinite(p[0]) && isFinite(p[1]));
-  const signal = (Array.isArray(r?.signal) ? r.signal : []).filter((p) => Array.isArray(p) && isFinite(p[0]))
+  const risk = (Array.isArray(r?.risk) ? r.risk : []).filter((p) => Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1]));
+  const signal = (Array.isArray(r?.signal) ? r.signal : []).filter((p) => Array.isArray(p) && Number.isFinite(p[0]))
     .sort((a, b) => a[0] - b[0]);
   const lastT = Math.max(0, ...events.map((e) => e.end), risk.at(-1)?.[0] ?? 0, r?.counts?.t?.at(-1) ?? 0);
   return { ...r, events, risk, signal, duration: Number(r?.duration) > 0 ? Number(r.duration) : lastT };
