@@ -11,3 +11,4 @@ website/dist/
 app/jobs/
 weights/yolo11l.pt
 deploy/space_build/
+website/data/samples/*.mp4

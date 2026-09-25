@@ -57,11 +57,9 @@ def main() -> None:
         log = pred.get("log", {}).get(video.name, {})
         timing = {"video_sec": round(obs.info.duration, 1), "part_a_sec": log.get("part_a_sec"),
                   "part_b_sec": log.get("part_b_sec"), "budget_sec": log.get("budget_sec")}
-        result = build_result(video.stem, obs, events, risk, media_prefix=f"data/samples/", timing=timing)
+        result = build_result(video.stem, obs, events, risk, media_prefix="data/samples/", timing=timing)
         if not args.no_render:
-            render_outputs(str(video), video.stem, obs, events, risk, out,
-                           progress=lambda p, v=video.stem: print(f"\r{v}: rendering {p:5.1%}", end="", flush=True))
-            print()
+            render_outputs(str(video), video.stem, obs, events, risk, out)
         (out / f"{video.stem}.json").write_text(json.dumps(result))
         index.append({k: result[k] for k in ("id", "duration", "fps", "width", "height", "annotated_video", "poster")}
                      | {"file": video.name, "n_events": len(events)})

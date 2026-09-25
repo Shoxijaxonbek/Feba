@@ -117,6 +117,67 @@ def queue_series(obs: Observation, scene: Scene) -> dict:
     return {"t": list(range(n)), "vehicles": vehicles.tolist(), "stationary": stationary.tolist()}
 
 
+def signal_heads(video: Path, timeline: list[list], scene: Scene) -> np.ndarray:
+    """Both signal heads, magnified, in a red phase (top row) and a green phase (bottom row)."""
+    from inspect_frames import grab
+
+    moments = [next((t + 5.0 for t, s in timeline if s == state), 0.0) for state in ("red", "green")]
+    frames = grab(str(video), moments)
+    rows = []
+    for t in moments:
+        tiles = []
+        for cfg in scene.signals.values():
+            boxes = np.array(list(cfg["lamps"].values()))
+            x0, y0 = (boxes[:, :2].min(0) - 25).astype(int)
+            x1, y1 = (boxes[:, :2] + boxes[:, 2:]).max(0).astype(int) + 25
+            crop = frames[t][y0:y1, x0:x1]
+            tiles.append(cv2.resize(crop, (crop.shape[1] * 360 // crop.shape[0], 360), interpolation=cv2.INTER_CUBIC))
+        rows.append(np.hstack([cv2.copyMakeBorder(tile, 4, 4, 4, 4, cv2.BORDER_CONSTANT) for tile in tiles]))
+    width = max(r.shape[1] for r in rows)
+    return np.vstack([cv2.copyMakeBorder(r, 0, 0, 0, width - r.shape[1], cv2.BORDER_CONSTANT) for r in rows])
+
+
+def findings(videos: list[dict], cycle: dict, queues: dict, flow: FlowField) -> list[dict]:
+    """What the data told us, and the design decision each finding led to."""
+    v = videos[0]
+    peak_queue = max(max(q["stationary"]) for q in queues.values())
+    coherent = int(((flow.coherence > 0.85) & (flow.count >= 30)).sum())
+    return [
+        {"title": "Heavy 4K files: decode only what we use",
+         "text": f"{v['width']}x{v['height']} {v['codec']} ({v['pix_fmt']}) at ~{v['bitrate_mbps']:.0f} Mbit/s, "
+                 f"{v['fps']:.2f} fps. Converting every frame to BGR runs at ~34 fps on a laptop, so Part A asks the "
+                 "decoder to skip non-reference frames: the I-B-B-P GOP then yields every third frame (~10 fps) at ~5x "
+                 "realtime.", "image": None},
+        {"title": "A fixed signal cycle we can read from the lamps",
+         "text": f"The main vehicle signal cycles every {cycle.get('cycle_s') or 80:.0f} s (red ~{cycle.get('red_s', 39):.0f} s "
+                 f"incl. red+amber, green ~{cycle.get('green_s', 38):.0f} s incl. 4 s flashing, amber ~{cycle.get('amber_s', 3):.0f} s). "
+                 "Colour glow in 10 px boxes around each lamp gives a clean timeline; a bus hiding the head is marked "
+                 "unknown instead of guessed. This enables red_light, stop_line and congestion.",
+         "image": "data/eda/signal_heads.jpg"},
+        {"title": "Standstill on red is normal traffic",
+         "text": f"Each red phase builds a queue of up to {peak_queue} stationary vehicles in the approach, and it clears "
+                 "within ~8 s of green. So congestion is only reported when the approach stays jammed on green, and "
+                 "queued vehicles never count as stopped_vehicle.", "image": None},
+        {"title": "Pedestrians cross everywhere",
+         "text": "Besides the three zebras, people cross diagonally between the islands and across the junction during "
+                 "the pedestrian phase, and bus passengers wait in the curb lane. Jaywalking therefore needs a margin "
+                 "from zebras and curbs and a bus-stop exemption; failure_to_yield only counts pedestrians on the "
+                 "roadway part of a zebra, near the vehicle.", "image": "data/eda/person_heatmap.jpg"},
+        {"title": "Lanes have one direction almost everywhere",
+         "text": f"{coherent} grid cells have a lane direction shared by >85% of vehicles; inside the junction turns "
+                 "mix directions. The learned flow field drives wrong-way detection only in the coherent cells.",
+         "image": "data/eda/flow_field.jpg"},
+        {"title": "Perspective changes object size ~4x",
+         "text": "A car on the far carriageway is ~60 px wide, one in the foreground ~250 px. Every distance used by "
+                 "the rules and by the risk model is expressed in object sizes, not pixels.",
+         "image": "data/eda/trajectories.jpg"},
+        {"title": "Detections that are not road users",
+         "text": "Passengers are visible through bus windows and parked cars stand at the far curb all clip long. "
+                 "Persons inside vehicle boxes are dropped; stationary vehicles at the bus stop are exempt.",
+         "image": "data/eda/vehicle_heatmap.jpg"},
+    ]
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("videos", nargs="+")
@@ -160,16 +221,22 @@ def main() -> None:
     }
     for name, img in images.items():
         cv2.imwrite(str(out / f"{name}.jpg"), img, [cv2.IMWRITE_JPEG_QUALITY, 85])
+    first = Path(args.videos[0])
+    images["signal_heads"] = signal_heads(first, timelines[first.stem], scene)
+    for name in ("signal_heads",):
+        cv2.imwrite(str(out / f"{name}.jpg"), images[name], [cv2.IMWRITE_JPEG_QUALITY, 90])
     hist, bins = np.histogram(np.clip(speeds, 0, 600), bins=40, range=(0, 600))
-    all_changes = [c for tl in timelines.values() for c in tl]
+    cycle = cycle_stats(timelines[first.stem])
+    flow = FlowField.fit([tr for o in observations for tr in o.tracks.values()])
     eda = {
         "videos": videos,
         "images": {name: f"data/eda/{name}.jpg" for name in images},
         "counts_over_time": counts,
-        "signal_cycle": {**cycle_stats(timelines[videos[0]["id"]] if videos else all_changes), "timeline": timelines},
+        "signal_cycle": {**cycle, "timeline": timelines},
         "queue": queues,
         "speeds": {"vehicle_px_s": hist.tolist(), "bins": bins.round(1).tolist()},
         "classes": NAMES,
+        "findings": findings(videos, cycle, queues, flow),
     }
     (out / "eda.json").write_text(json.dumps(eda))
     print(f"wrote {out / 'eda.json'}")

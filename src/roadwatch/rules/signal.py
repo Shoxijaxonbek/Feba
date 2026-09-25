@@ -27,15 +27,15 @@ def _along_line(point: np.ndarray, line: np.ndarray) -> float:
     return float((point - a) @ (b - a) / ((b - a) @ (b - a)))
 
 
-def _upstream_reference(ctx: Context) -> np.ndarray:
-    zone = next(iter(ctx.scene.queue_zones.values()))
-    return zone.poly.mean(axis=0)
+def _upstream_reference(ctx: Context, stop_line: dict) -> np.ndarray:
+    """A point on the approach side of the stop line (centre of its queue zone)."""
+    return ctx.scene.queue_zones[stop_line["queue_zone"]].poly.mean(axis=0)
 
 
 def red_light(ctx: Context) -> list[Event]:
     events = []
-    ref = _upstream_reference(ctx)
     for name, sl in ctx.scene.stop_lines.items():
+        ref = _upstream_reference(ctx, sl)
         for tr in ctx.vehicles.values():
             d = _downstream_distance(tr.smooth_foot(), sl["line"], ref)
             crossed = np.flatnonzero((d[1:] > 0) & (d[:-1] <= 0)) + 1
@@ -63,8 +63,8 @@ def red_light(ctx: Context) -> list[Event]:
 
 def stop_line(ctx: Context) -> list[Event]:
     events = []
-    ref = _upstream_reference(ctx)
     for name, sl in ctx.scene.stop_lines.items():
+        ref = _upstream_reference(ctx, sl)
         for tr in ctx.vehicles.values():
             foot = tr.smooth_foot()
             d = _downstream_distance(foot, sl["line"], ref)

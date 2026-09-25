@@ -39,7 +39,7 @@ class Annotator:
     def draw(self, frame: np.ndarray, t: float) -> np.ndarray:
         img = frame.copy()
         active = [ev for ev in self.events if ev.start - 0.05 <= t <= ev.end + 0.05]
-        hot = set().union(*(ev.tracks for ev in active)) if active else set()
+        hot = set().union(*(ev.involved(t) for ev in active)) if active else set()
         for tid, tr in self.obs.tracks.items():
             if not (tr.t[0] - 0.06 <= t <= tr.t[-1] + 0.06):
                 continue
@@ -100,7 +100,7 @@ def render_video(video_path: str, out_path: str, annotator: Annotator, fps: floa
         stream = out.add_stream("libx264", rate=rate)
         stream.width, stream.height = size
         stream.pix_fmt = "yuv420p"
-        stream.options = {"crf": "26", "preset": "veryfast"}
+        stream.options = {"crf": "28", "preset": "veryfast"}
         for t, frame in iter_frames(video_path, target_fps=fps):
             if duration and t > duration:
                 break
