@@ -27,7 +27,7 @@ class Event:
 
 # Same-class hits closer than this are one event (the annotation guide merges
 # simultaneous same-class events into one segment).
-MERGE_GAP = {"jaywalking": 1.0, "failure_to_yield": 0.5, "wrong_way": 1.0}
+MERGE_GAP = {"jaywalking": 3.0, "failure_to_yield": 0.5, "wrong_way": 1.0}
 DEFAULT_MERGE_GAP = 0.0
 
 

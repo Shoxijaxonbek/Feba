@@ -323,7 +323,7 @@
           <p class="eyebrow">Live demo</p>
           <h2 id="demo-title">Run it on your own clip</h2>
           <p class="lede">Upload a short .mp4. The server runs the full pipeline and returns the same views as the results above.</p>
-          <p class="lede">The demo server has no GPU, so it uses a lighter setting than our submission: YOLO11s at 960 px and 5 fps instead of YOLO11m at 1280 px and 10 fps. On our dev labels that costs accuracy (Score A 0.54 vs 0.84; small, distant road users and the U-turn are missed), but a 2-minute clip comes back in about 3 minutes.</p>
+          <p class="lede">The demo runs exactly the submitted pipeline (YOLO11m, 10 fps, same rules and risk model) on our own GPU laptop, reached through a Cloudflare tunnel. Uploads are limited to 100 MB by the tunnel; a 1080p clip of up to 2 minutes fits.</p>
         </header>
         <div id="demo-body" class="stack"><p class="loading">Loading demo…</p></div>
       </div>

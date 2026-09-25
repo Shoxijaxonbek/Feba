@@ -2,10 +2,11 @@
 
     uvicorn app.server:app --host 0.0.0.0 --port 7860
 
-Serves the static website from ./website at "/" and the API under /api (see
-website/DATA_CONTRACT.md). Jobs run one at a time in a background thread; CPU
-inference is fine (set ROADWATCH_WEIGHTS=yolo11s.pt ROADWATCH_IMGSZ=960
-ROADWATCH_FPS=5 for a small machine).
+Serves the API under /api (see website/DATA_CONTRACT.md) and, for local use, the
+static website at "/". The public site is a static Hugging Face Space that calls this
+API through a tunnel (deploy/serve_demo.py), so cross-origin requests are allowed.
+Jobs run one at a time in a background thread with the submission settings; on a
+machine without a GPU set ROADWATCH_WEIGHTS=yolo11s.pt ROADWATCH_IMGSZ=960 ROADWATCH_FPS=5.
 """
 from __future__ import annotations
 
@@ -23,6 +24,7 @@ from pathlib import Path
 import numpy as np
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -33,7 +35,7 @@ from roadwatch.report import build_result, render_outputs  # noqa: E402
 from roadwatch.risk import replay_detections  # noqa: E402
 
 JOBS_DIR = Path(__file__).resolve().parent / "jobs"
-MAX_BYTES = 500 * 1024 * 1024
+MAX_BYTES = 100 * 1024 * 1024   # Cloudflare's per-request limit on the tunnel
 MAX_SECONDS = 120.0
 JOB_TTL_S = 3 * 3600
 
@@ -101,6 +103,7 @@ def _cleanup() -> None:
 
 
 app = FastAPI(title="RoadSense demo")
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET", "POST"], allow_headers=["*"])
 
 
 @app.on_event("startup")
@@ -125,7 +128,7 @@ async def create_job(video: UploadFile = File(...)) -> dict:
             if size > MAX_BYTES:
                 f.close()
                 shutil.rmtree(job.dir, ignore_errors=True)
-                raise HTTPException(413, "file larger than 500 MB")
+                raise HTTPException(413, "file larger than 100 MB")
             f.write(chunk)
     jobs[job.id] = job
     work.put(job)

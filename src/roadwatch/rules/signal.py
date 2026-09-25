@@ -9,7 +9,8 @@ from ..signals import GREEN, RED
 from .common import STILL_SPEED, Context, runs
 
 RED_SETTLED_S = 1.0      # red must have been showing this long (amber/red boundary is ambiguous)
-PAST_LINE_PX = 15.0      # front must be this far past the line to count as over it
+PAST_LINE_PX = 15.0      # front must be this far past the line to count as having crossed it
+STOP_PAST_FRAC = 0.6     # stopped vehicles: past the line by this share of their box height (a bonnet over is not flagged)
 MAX_EVENT_S = 10.0
 MIN_STOP_S = 2.0
 
@@ -69,11 +70,12 @@ def stop_line(ctx: Context) -> list[Event]:
             foot = tr.smooth_foot()
             d = _downstream_distance(foot, sl["line"], ref)
             still = tr.speed() < STILL_SPEED
-            over = (d > PAST_LINE_PX) & sl["zone"].contains(foot)
+            over = (d > STOP_PAST_FRAC * (tr.box[:, 3] - tr.box[:, 1])) & sl["zone"].contains(foot)
             for s, e in runs(tr.t, still & over, max_gap=0.6):
                 if e - s < MIN_STOP_S or ctx.signal_at(sl["signal"], s)[0] != RED:
                     continue
+                # ends when the signal turns green, or earlier if the vehicle drives off on red
                 green = ctx.next_change(sl["signal"], s, GREEN)
-                end = green if green is not None else ctx.duration
+                end = min(green if green is not None else ctx.duration, e)
                 events.append(Event(s, end, "stop_line", {tr.tid}, {"stop_line": name}))
     return events

@@ -137,9 +137,10 @@ def signal_heads(video: Path, timeline: list[list], scene: Scene) -> np.ndarray:
     return np.vstack([cv2.copyMakeBorder(r, 0, 0, 0, width - r.shape[1], cv2.BORDER_CONSTANT) for r in rows])
 
 
-def findings(videos: list[dict], cycle: dict, queues: dict, flow: FlowField) -> list[dict]:
+def findings(videos: list[dict], cycle: dict, queues: dict, flow: FlowField, cycles: dict) -> list[dict]:
     """What the data told us, and the design decision each finding led to."""
     v = videos[0]
+    per_video = ", ".join(f"{vid} {c['cycle_s']:.0f} s" for vid, c in cycles.items() if c.get("cycle_s"))
     peak_queue = max(max(q["stationary"]) for q in queues.values())
     coherent = int(((flow.coherence > 0.85) & (flow.count >= 30)).sum())
     return [
@@ -149,10 +150,12 @@ def findings(videos: list[dict], cycle: dict, queues: dict, flow: FlowField) -> 
                  "decoder to skip non-reference frames: the I-B-B-P GOP then yields every third frame (~10 fps) at ~5x "
                  "realtime.", "image": None},
         {"title": "A fixed signal cycle we can read from the lamps",
-         "text": f"The main vehicle signal cycles every {cycle.get('cycle_s') or 80:.0f} s (red ~{cycle.get('red_s', 39):.0f} s "
-                 f"incl. red+amber, green ~{cycle.get('green_s', 38):.0f} s incl. 4 s flashing, amber ~{cycle.get('amber_s', 3):.0f} s). "
-                 "Colour glow in 10 px boxes around each lamp gives a clean timeline; a bus hiding the head is marked "
-                 "unknown instead of guessed. This enables red_light, stop_line and congestion.",
+         "text": f"The main vehicle signal runs a fixed cycle whose length depends on the time of day ({per_video}): "
+                 f"red ~{cycle.get('red_s', 39):.0f} s incl. red+amber, green ~{cycle.get('green_s', 38):.0f} s incl. flashing, "
+                 f"amber ~{cycle.get('amber_s', 3):.0f} s. Each lamp is located as the spot whose colour switches on and off "
+                 "over the video, which also works in harsh midday sun where the lit lamp is barely brighter than the "
+                 "housing; a bus hiding the head is marked unknown instead of guessed. This enables red_light, "
+                 "stop_line and congestion. We do not assume a fixed cycle: every video is read.",
          "image": "data/eda/signal_heads.jpg"},
         {"title": "Standstill on red is normal traffic",
          "text": f"Each red phase builds a queue of up to {peak_queue} stationary vehicles in the approach, and it clears "
@@ -193,7 +196,9 @@ def main() -> None:
     for path in map(Path, args.videos):
         obs = Observation.load(Path(args.cache) / f"{path.stem}.pkl")
         kf = keyframe_pass(path)
-        backgrounds.append(kf["background"])
+        # into the reference view (tracks and layout live there; the tripod moved between recordings)
+        to_reference = np.asarray(obs.side.get("alignment", [[1, 0, 0], [0, 1, 0]]), dtype=np.float64)
+        backgrounds.append(cv2.warpAffine(kf["background"], to_reference, (SCENE_W, SCENE_H), borderMode=cv2.BORDER_REPLICATE))
         info = obs.info
         videos.append({"id": path.stem, "duration": round(info.duration, 1), "fps": round(info.fps, 3),
                        "width": info.width, "height": info.height, "frames": info.n_frames, **kf["meta"],
@@ -236,7 +241,7 @@ def main() -> None:
         "queue": queues,
         "speeds": {"vehicle_px_s": hist.tolist(), "bins": bins.round(1).tolist()},
         "classes": NAMES,
-        "findings": findings(videos, cycle, queues, flow),
+        "findings": findings(videos, cycle, queues, flow, {vid: cycle_stats(tl) for vid, tl in timelines.items()}),
     }
     (out / "eda.json").write_text(json.dumps(eda))
     print(f"wrote {out / 'eda.json'}")

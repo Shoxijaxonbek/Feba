@@ -36,9 +36,10 @@ MIN_REL_SPEED = 0.3   # relative speed (sizes/s) below which a pair is ignored
 PARKED_S = 5.0        # road users standing still longer than this (parked, queued) are left out
 STILL_PX_S = 12.0
 FOOTPRINT = {"vehicle": 0.30, "two_wheeler": 0.20, "person": 0.12}  # ground part of the box height
-CALIB_MID = 7.5       # raw score giving risk 0.5 (above the maximum seen on normal traffic in the samples)
+CALIB_MID = 6.5       # raw score giving risk 0.5 (normal traffic in the four samples peaks at 5.8 -> 0.30)
 CALIB_SLOPE = 1.2
 RELEASE_PER_S = 0.5   # smoothed score decays at most this much per second
+PERSIST_FRAMES = 3
 MAX_STRIDE = 96       # time-budget guard never thins detection below one frame in ~3 s
 
 
@@ -127,7 +128,7 @@ class CausalRisk:
         self.last_t = 0.0
         self.last_raw = 0.0
         self.last_pair: tuple[int, int] | None = None
-        self.prev_danger: dict[tuple[int, int], float] = {}
+        self.prev_danger: deque = deque(maxlen=PERSIST_FRAMES - 1)  # per-pair danger of the last frames
         self.to_reference: np.ndarray | None = None
 
     def step(self, frame: np.ndarray, t: float) -> float:
@@ -189,11 +190,14 @@ class CausalRisk:
             for k in np.flatnonzero(danger > 0):
                 pair = (ids[a_idx[k]], ids[b_idx[k]])
                 danger_now[pair] = float(danger[k])
-                # a conflict must persist over two processed frames: one-frame spikes are box jitter
-                sustained = min(danger_now[pair], self.prev_danger.get(pair, 0.0))
+                # a conflict must persist over PERSIST_FRAMES processed frames (~0.6 s): shorter
+                # spikes are box jitter or two paths that touch only on paper and then diverge
+                history = [d.get(pair, 0.0) for d in self.prev_danger]
+                full = len(history) == self.prev_danger.maxlen
+                sustained = min([danger_now[pair]] + history) if full else 0.0
                 if sustained > best:
                     best, self.last_pair = sustained, pair
-        self.prev_danger = danger_now
+        self.prev_danger.append(danger_now)
         return best
 
 

@@ -68,8 +68,19 @@ class Context:
         if i < 0 or st[i] != RED:
             return 0.0
         j = i
-        while j > 0 and st[j - 1] in (RED, UNKNOWN):
-            j -= 1
+        while j > 0:
+            if st[j - 1] == RED:
+                j -= 1
+                continue
+            # an unknown stretch (occlusion) only counts if the signal was red before it too;
+            # otherwise it is an undetected amber phase and red starts after it
+            k = j - 1
+            while k > 0 and st[k] == UNKNOWN:
+                k -= 1
+            if st[j - 1] == UNKNOWN and st[k] == RED:
+                j = k
+                continue
+            break
         return float(t - st_t[j])
 
 

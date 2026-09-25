@@ -3,7 +3,7 @@
 The camera is fixed, but a tripod nudged between recordings would shift every
 zone and signal-lamp box by a few pixels, silently breaking the rules. Each
 video's first frame is matched to configs/reference.jpg (the median background
-of the sample videos) with ORB features and a RANSAC similarity transform.
+of the sample videos) with SIFT features and a RANSAC similarity transform.
 Detections are mapped into reference coordinates; lamp boxes are mapped back.
 Small or unreliable estimates fall back to the identity.
 """
@@ -16,10 +16,16 @@ import numpy as np
 
 REFERENCE = Path(__file__).resolve().parents[2] / "configs" / "reference.jpg"
 WORK_W = 960              # matching resolution
-MIN_INLIERS = 60
-MIN_SHIFT_PX = 1.5        # below this the view is considered unchanged
+MIN_INLIERS = 40
+MIN_SHIFT_PX = 3.0        # below this the view is considered unchanged (matching noise)
 MAX_SHIFT_PX = 250.0      # beyond this the match is not trusted
 IDENTITY = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
+
+
+def _gray(image: np.ndarray, size: tuple[int, int]) -> np.ndarray:
+    """Downscaled, contrast-normalised grey image: evens out midday sun vs dusk."""
+    g = cv2.cvtColor(cv2.resize(image, size, interpolation=cv2.INTER_AREA), cv2.COLOR_BGR2GRAY)
+    return cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(g)
 
 
 def estimate(frame: np.ndarray, reference: np.ndarray | None = None) -> np.ndarray:
@@ -29,14 +35,15 @@ def estimate(frame: np.ndarray, reference: np.ndarray | None = None) -> np.ndarr
             return IDENTITY.copy()
         reference = cv2.imread(str(REFERENCE))
     s = WORK_W / frame.shape[1]
-    a = cv2.cvtColor(cv2.resize(frame, None, fx=s, fy=s, interpolation=cv2.INTER_AREA), cv2.COLOR_BGR2GRAY)
-    b = cv2.cvtColor(cv2.resize(reference, (a.shape[1], a.shape[0]), interpolation=cv2.INTER_AREA), cv2.COLOR_BGR2GRAY)
-    orb = cv2.ORB_create(3000)
-    ka, da = orb.detectAndCompute(a, None)
-    kb, db = orb.detectAndCompute(b, None)
+    size = (WORK_W, round(frame.shape[0] * s))
+    a, b = _gray(frame, size), _gray(reference, size)
+    # SIFT + Lowe's ratio test: ORB found too few consistent matches between midday and dusk footage
+    sift = cv2.SIFT_create(4000)
+    ka, da = sift.detectAndCompute(a, None)
+    kb, db = sift.detectAndCompute(b, None)
     if da is None or db is None or len(ka) < MIN_INLIERS or len(kb) < MIN_INLIERS:
         return IDENTITY.copy()
-    matches = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True).match(da, db)
+    matches = [m for m, n in cv2.BFMatcher(cv2.NORM_L2).knnMatch(da, db, k=2) if m.distance < 0.75 * n.distance]
     if len(matches) < MIN_INLIERS:
         return IDENTITY.copy()
     pa = np.float32([ka[m.queryIdx].pt for m in matches])
