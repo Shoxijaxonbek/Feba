@@ -111,11 +111,22 @@ def iter_frames(path: str, target_fps: float = 10.0, size: tuple[int, int] = (SC
                 prefetch: int = 16) -> Iterator[tuple[float, np.ndarray]]:
     """Yield (t_sec, BGR frame at `size`) at roughly `target_fps`.
 
-    Decoding runs in a background thread so it overlaps with GPU inference.
+    Decoding runs in a background thread so it overlaps with GPU inference; it
+    stops as soon as the consumer stops iterating.
     """
     q: queue.Queue = queue.Queue(maxsize=prefetch)
     done = object()
+    stop = threading.Event()
     error: list[BaseException] = []
+
+    def put(item) -> bool:
+        while not stop.is_set():
+            try:
+                q.put(item, timeout=0.2)
+                return True
+            except queue.Full:
+                continue
+        return False
 
     def worker() -> None:
         try:
@@ -129,21 +140,26 @@ def iter_frames(path: str, target_fps: float = 10.0, size: tuple[int, int] = (SC
                 first = next(gen, None)
                 if first is None:
                     return
-            q.put(first)
+            if not put(first):
+                return
             for item in gen:
-                q.put(item)
+                if not put(item):
+                    return
         except BaseException as exc:  # surfaced in the consumer thread
             error.append(exc)
         finally:
-            q.put(done)
+            put(done)
 
     thread = threading.Thread(target=worker, daemon=True)
     thread.start()
-    while True:
-        item = q.get()
-        if item is done:
-            break
-        yield item
-    thread.join()
+    try:
+        while True:
+            item = q.get()
+            if item is done:
+                break
+            yield item
+    finally:
+        stop.set()
+        thread.join(timeout=5)
     if error:
         raise error[0]

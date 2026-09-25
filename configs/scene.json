@@ -25,8 +25,9 @@
     "C": [[118, 800], [302, 757], [482, 874], [712, 978], [842, 1080], [518, 1080], [398, 986], [243, 886]]
   },
   "stop_lines": {
-    "main": {"_comment": "main approach, traffic moves down-right across it",
-             "line": [[235, 566], [892, 486]], "signal": "main"}
+    "main": {"_comment": "main approach, traffic moves down-right across it; zone = between the line and the far edge of crosswalk A",
+             "line": [[235, 566], [892, 486]], "signal": "main",
+             "zone": [[235, 566], [892, 486], [1060, 522], [1158, 588], [333, 702], [292, 650]]}
   },
   "queue_zones": {
     "main_approach": [[0, 205], [400, 298], [800, 430], [905, 475], [892, 486], [235, 566], [0, 392]]

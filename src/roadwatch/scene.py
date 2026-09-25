@@ -48,7 +48,8 @@ class Scene:
         self.no_stop_exempt = z(cfg.get("no_stop_exempt", {}))
         self.queue_zones = z(cfg.get("queue_zones", {}))
         self.intersection = z(cfg.get("intersection", {}))
-        self.stop_lines = {k: {**v, "line": np.asarray(v["line"], dtype=np.float64)}
+        self.stop_lines = {k: {**v, "line": np.asarray(v["line"], dtype=np.float64),
+                               "zone": Zone(k, np.asarray(v["zone"], dtype=np.float64))}
                            for k, v in cfg.get("stop_lines", {}).items()}
         self.signals = cfg.get("signals", {})
 
