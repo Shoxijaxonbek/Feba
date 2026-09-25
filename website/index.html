@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RoadSense · WIUT Hackathon 2026</title>
+  <meta name="description" content="RoadSense finds traffic violations and scores accident risk in 4K CCTV footage of a signalised junction in Tashkent. WIUT Hackathon 2026, Computer Vision track.">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232a78d6'/%3E%3Cpath d='M7 23 25 9' stroke='white' stroke-width='5' stroke-linecap='round'/%3E%3Ccircle cx='22' cy='21' r='3.5' fill='%23fab219'/%3E%3C/svg%3E">
+  <script>
+    // Resolve the theme before first paint (stored choice, else the OS setting).
+    (function () {
+      var s = null;
+      try { s = localStorage.getItem('rs-theme'); } catch (e) {}
+      document.documentElement.dataset.theme = s || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    })();
+  </script>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script type="module" src="assets/js/main.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a class="brand" href="#home" aria-label="RoadSense, back to top">
+        <svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--accent)"/><path d="M7 23 25 9" stroke="#fff" stroke-width="5" stroke-linecap="round"/><circle cx="22" cy="21" r="3.5" fill="#fab219"/></svg>
+        <span>RoadSense</span>
+      </a>
+      <nav id="site-nav" class="nav" aria-label="Sections">
+        <a href="#team">Team</a>
+        <a href="#approach">Approach</a>
+        <a href="#eda">EDA</a>
+        <a href="#results">Results</a>
+        <a href="#metrics">Metrics</a>
+        <a href="#demo">Live demo</a>
+        <a href="#dashboard">Dashboard</a>
+        <a href="#report">Report</a>
+        <a href="#links">Links</a>
+      </nav>
+      <div class="topbar-actions">
+        <button id="theme-toggle" class="icon-btn" type="button" aria-pressed="false" aria-label="Switch theme">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11Z"/></svg>
+        </button>
+        <button id="menu-toggle" class="icon-btn menu-btn" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Menu">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- 1. Home -->
+    <section id="home" class="section hero" aria-labelledby="hero-title">
+      <div class="wrap hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">WIUT Hackathon 2026 · Computer Vision track</p>
+          <h1 id="hero-title">RoadSense</h1>
+          <p class="lede">A fixed 4K traffic camera in Tashkent, turned into a time-stamped list of traffic violations and a frame-by-frame accident-risk score.</p>
+          <p class="hero-sub">Detection and tracking give us every road user. The traffic light's own state and a hand-drawn map of the junction tell us what they are allowed to do.</p>
+          <div class="btn-row">
+            <a class="btn btn-primary" href="#results">See the results</a>
+            <a class="btn" href="#demo">Try the live demo</a>
+          </div>
+        </div>
+        <figure class="hero-art">
+          <svg viewBox="0 0 480 320" role="img" aria-labelledby="sketch-title sketch-desc">
+            <title id="sketch-title">Schematic of the junction</title>
+            <desc id="sketch-desc">A boulevard runs diagonally from top left to bottom right with a median island. Crosswalk A crosses the main approach, B the far carriageway and C a right-turn slip road at the bottom left. A pedestrian crossing away from the zebras is flagged as jaywalking.</desc>
+            <rect class="sk-bg" width="480" height="320" rx="14"/>
+            <path class="sk-road" d="M52 150 140 186 64 320 0 320 0 246Z"/>
+            <g transform="rotate(24 240 160)">
+              <rect class="sk-road" x="-90" y="90" width="660" height="62"/>
+              <rect class="sk-road" x="-90" y="168" width="660" height="62"/>
+              <rect class="sk-island" x="-90" y="152" width="660" height="16"/>
+              <path class="sk-lane" d="M-90 121H570M-90 199H570"/>
+              <g class="sk-zebra">
+                <rect x="190" y="171" width="24" height="6"/><rect x="190" y="181" width="24" height="6"/><rect x="190" y="191" width="24" height="6"/><rect x="190" y="201" width="24" height="6"/><rect x="190" y="211" width="24" height="6"/><rect x="190" y="221" width="24" height="6"/>
+                <rect x="252" y="93" width="24" height="6"/><rect x="252" y="103" width="24" height="6"/><rect x="252" y="113" width="24" height="6"/><rect x="252" y="123" width="24" height="6"/><rect x="252" y="133" width="24" height="6"/><rect x="252" y="143" width="24" height="6"/>
+              </g>
+              <path class="sk-stop" d="M180 170V228"/>
+              <path class="sk-trail" d="M20 188C60 188 90 186 120 186"/>
+              <rect class="sk-car" x="120" y="178" width="32" height="16" rx="4"/>
+              <rect class="sk-car" x="382" y="98" width="32" height="16" rx="4"/>
+              <rect class="sk-car" x="330" y="206" width="32" height="16" rx="4"/>
+              <rect class="sk-box" x="116" y="174" width="40" height="24" rx="3"/>
+              <circle class="sk-ped" cx="264" cy="118" r="4.5"/>
+              <circle class="sk-ped" cx="300" cy="186" r="4.5"/>
+              <rect class="sk-box sk-box--alert" x="292" y="176" width="16" height="20" rx="3"/>
+              <rect class="sk-signal" x="222" y="154" width="10" height="24" rx="2"/>
+              <circle cx="227" cy="159" r="2.6" fill="#d03b3b"/>
+              <circle class="sk-lamp" cx="227" cy="166" r="2.6"/>
+              <circle class="sk-lamp" cx="227" cy="173" r="2.6"/>
+            </g>
+            <g class="sk-zebra" transform="translate(64 242) rotate(-58)">
+              <rect x="-12" y="-27" width="24" height="6"/><rect x="-12" y="-17" width="24" height="6"/><rect x="-12" y="-7" width="24" height="6"/><rect x="-12" y="3" width="24" height="6"/><rect x="-12" y="13" width="24" height="6"/><rect x="-12" y="23" width="24" height="6"/>
+            </g>
+            <g class="sk-label">
+              <circle cx="172" cy="222" r="11"/><text x="172" y="226.5">A</text>
+              <circle cx="298" cy="92" r="11"/><text x="298" y="96.5">B</text>
+              <circle cx="104" cy="272" r="11"/><text x="104" y="276.5">C</text>
+            </g>
+            <g class="sk-tag">
+              <rect x="296" y="222" width="82" height="22" rx="11"/>
+              <text x="337" y="237">jaywalking</text>
+            </g>
+          </svg>
+          <figcaption>Schematic of the camera view: crosswalks A, B and C, the stop line and the vehicle signal on the median island.</figcaption>
+        </figure>
+      </div>
+      <div class="wrap">
+        <dl id="hero-kpis" class="kpis" aria-busy="true">
+          <div class="kpi kpi--loading"><dt>Loading</dt><dd>…</dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <!-- 2. Team -->
+    <section id="team" class="section" aria-labelledby="team-title">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="eyebrow">Team</p>
+          <h2 id="team-title" data-team-name>Team</h2>
+          <p id="team-tagline" class="lede"></p>
+        </header>
+        <div id="team-grid" class="grid-3"></div>
+      </div>
+    </section>
+
+    <!-- 3. Problem & approach -->
+    <section id="approach" class="section" aria-labelledby="approach-title">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="eyebrow">Problem &amp; approach</p>
+          <h2 id="approach-title">A little learning and a lot of geometry</h2>
+          <p class="lede">Part A: turn an .mp4 into traffic events <code>[start_sec, end_sec, label]</code> across 14 official classes, scored by macro-F1 over temporal-IoU thresholds 0.3, 0.5 and 0.7. Part B: a causal per-frame probability that an accident starts within 5 seconds.</p>
+        </header>
+
+        <div class="approach-grid">
+          <figure class="card pipeline">
+            <svg viewBox="0 0 380 624" role="img" aria-labelledby="pl-title pl-desc">
+              <title id="pl-title">Pipeline diagram</title>
+              <desc id="pl-desc">Video is decoded at reference frames only, YOLO11m detects road users, then the pipeline splits. Part A tracks with ByteTrack in three groups, adds signal state, scene layout and the lane-direction field, applies one rule per class and post-processes segments into events. Part B tracks causally at 5 fps, computes footprint time-to-contact, the required deceleration, a persistence filter and a logistic calibration into a risk score.</desc>
+              <defs>
+                <marker id="pl-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                  <path class="pl-head" d="M0 0 10 5 0 10Z"/>
+                </marker>
+              </defs>
+              <rect class="pl-panel" x="4" y="204" width="202" height="384" rx="10"/>
+              <rect class="pl-panel" x="212" y="204" width="164" height="384" rx="10"/>
+              <text class="pl-part" x="14" y="222">PART A</text>
+              <text class="pl-part" x="222" y="222">PART B</text>
+
+              <g class="pl-edge">
+                <path d="M190 54V72" marker-end="url(#pl-arrow)"/>
+                <path d="M190 120V138" marker-end="url(#pl-arrow)"/>
+                <path d="M190 186V196H105V226" marker-end="url(#pl-arrow)"/>
+                <path d="M190 196H294V226" marker-end="url(#pl-arrow)"/>
+                <path d="M105 274V290" marker-end="url(#pl-arrow)"/>
+                <path d="M105 394V410" marker-end="url(#pl-arrow)"/>
+                <path d="M105 458V474" marker-end="url(#pl-arrow)"/>
+                <path d="M105 522V538" marker-end="url(#pl-arrow)"/>
+                <path d="M294 274V290" marker-end="url(#pl-arrow)"/>
+                <path d="M294 338V354" marker-end="url(#pl-arrow)"/>
+                <path d="M294 402V418" marker-end="url(#pl-arrow)"/>
+                <path d="M294 466V482" marker-end="url(#pl-arrow)"/>
+                <path d="M294 530V538" marker-end="url(#pl-arrow)"/>
+              </g>
+
+              <g class="pl-io"><rect x="10" y="8" width="360" height="46" rx="8"/></g>
+              <text class="pl-t pl-t--io" x="190" y="28">Video (.mp4)</text>
+              <text class="pl-s pl-s--io" x="190" y="45">4K · 29.97 fps · I-B-B-P GOP</text>
+
+              <rect class="pl-box" x="10" y="74" width="360" height="46" rx="8"/>
+              <text class="pl-t" x="190" y="94">Decode with PyAV</text>
+              <text class="pl-s" x="190" y="111">reference frames only: ≈10 fps at ~5× realtime</text>
+
+              <rect class="pl-box pl-learned" x="10" y="140" width="360" height="46" rx="8"/>
+              <text class="pl-t" x="190" y="160">Detect with YOLO11m</text>
+              <text class="pl-s" x="190" y="177">COCO weights · GPU pre/post-processing</text>
+
+              <rect class="pl-box" x="12" y="228" width="186" height="46" rx="8"/>
+              <text class="pl-t" x="105" y="248">ByteTrack × 3</text>
+              <text class="pl-s" x="105" y="265">vehicles, 2-wheelers, people</text>
+
+              <rect class="pl-box" x="12" y="292" width="186" height="30" rx="7"/>
+              <text class="pl-s pl-s--strong" x="105" y="311">Signal state · lamp colours</text>
+              <rect class="pl-box" x="12" y="328" width="186" height="30" rx="7"/>
+              <text class="pl-s pl-s--strong" x="105" y="347">Scene layout · hand-drawn</text>
+              <rect class="pl-box pl-learned" x="12" y="364" width="186" height="30" rx="7"/>
+              <text class="pl-s pl-s--strong" x="105" y="383">Lane-direction field</text>
+
+              <rect class="pl-box" x="12" y="412" width="186" height="46" rx="8"/>
+              <text class="pl-t" x="105" y="432">Rules, one per class</text>
+              <text class="pl-s" x="105" y="449">tracks + layout + signal</text>
+
+              <rect class="pl-box" x="12" y="476" width="186" height="46" rx="8"/>
+              <text class="pl-t" x="105" y="496">Segment clean-up</text>
+              <text class="pl-s" x="105" y="513">merge · trim · min length</text>
+
+              <g class="pl-io"><rect x="12" y="540" width="186" height="40" rx="8"/></g>
+              <text class="pl-t pl-t--io" x="105" y="565">events [start, end, label]</text>
+
+              <rect class="pl-box" x="220" y="228" width="148" height="46" rx="8"/>
+              <text class="pl-t" x="294" y="248">Causal ByteTrack</text>
+              <text class="pl-s" x="294" y="265">5 fps, past frames only</text>
+
+              <rect class="pl-box" x="220" y="292" width="148" height="46" rx="8"/>
+              <text class="pl-t" x="294" y="312">Footprint TTC</text>
+              <text class="pl-s" x="294" y="329">time to contact</text>
+
+              <rect class="pl-box" x="220" y="356" width="148" height="46" rx="8"/>
+              <text class="pl-t" x="294" y="376">DRAC</text>
+              <text class="pl-s" x="294" y="393">required deceleration</text>
+
+              <rect class="pl-box" x="220" y="420" width="148" height="46" rx="8"/>
+              <text class="pl-t" x="294" y="440">Persistence</text>
+              <text class="pl-s" x="294" y="457">conflict must hold</text>
+
+              <rect class="pl-box pl-learned" x="220" y="484" width="148" height="46" rx="8"/>
+              <text class="pl-t" x="294" y="504">Calibration</text>
+              <text class="pl-s" x="294" y="521">logistic fit</text>
+
+              <g class="pl-io"><rect x="220" y="540" width="148" height="40" rx="8"/></g>
+              <text class="pl-t pl-t--io" x="294" y="565">risk(t) in [0, 1]</text>
+
+              <g class="pl-legend">
+                <rect class="pl-box pl-learned" x="10" y="600" width="14" height="14" rx="3"/>
+                <text x="30" y="611">learned</text>
+                <rect class="pl-box" x="92" y="600" width="14" height="14" rx="3"/>
+                <text x="112" y="611">rule-based / geometry</text>
+                <g class="pl-io"><rect x="262" y="600" width="14" height="14" rx="3"/></g>
+                <text x="282" y="611">input / output</text>
+              </g>
+            </svg>
+            <figcaption>Where the work happens. Blue boxes are learned; the rest is explicit rules and geometry.</figcaption>
+          </figure>
+
+          <div class="approach-side">
+            <article class="card">
+              <h3>Models and data</h3>
+              <dl class="facts">
+                <div><dt>Detector</dt><dd><strong>YOLO11m</strong>, open COCO weights (person, bicycle, car, motorcycle, bus, truck). The medium size is the accuracy/speed sweet spot; see the ablations under Metrics.</dd></div>
+                <div><dt>Tracker</dt><dd><strong>ByteTrack</strong> in three groups (vehicles, two-wheelers, pedestrians), so a cyclist never swaps identity with a pedestrian.</dd></div>
+                <div><dt>Decoding</dt><dd><strong>PyAV</strong> decodes only the I- and P-frames of the camera's I-B-B-P GOP: every third frame, ≈10 fps, at about 5× realtime.</dd></div>
+                <div><dt>Data</dt><dd>The organisers' sample videos only. The scene layout is drawn once on this fixed view; the lane directions are learned from our own trajectories; our dev set is our own labels of the samples.</dd></div>
+                <div><dt>Runtime</dt><dd>Part A runs faster than the video plays, far inside the 3× budget. Exact numbers are under Metrics.</dd></div>
+              </dl>
+            </article>
+            <article class="card">
+              <h3>Traffic-light reader</h3>
+              <p>Small boxes around each lamp of the main signal head are checked for a red, amber or green glow. The reader recovers the fixed 80 s cycle: red 37 s, red + amber 3 s, green 33 s, flashing green 4 s, amber 3 s.</p>
+            </article>
+          </div>
+        </div>
+
+        <h3 class="sub-head">Learned or rule-based?</h3>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th scope="col">Component</th><th scope="col">Kind</th><th scope="col">What it uses</th><th scope="col">Why</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Detector weights</th><td><span class="tag tag--learned">learned</span></td><td>YOLO11m, COCO pre-training, no fine-tuning</td><td>Reliable boxes for people and vehicles out of the box</td></tr>
+              <tr><th scope="row">Lane-direction field</th><td><span class="tag tag--learned">learned</span></td><td>Median heading per grid cell from sample-video trajectories</td><td>wrong_way needs to know the legal direction; no labels needed</td></tr>
+              <tr><th scope="row">Risk calibration</th><td><span class="tag tag--learned">learned</span></td><td>Logistic fit from required deceleration to probability</td><td>Keeps normal traffic below 0.5</td></tr>
+              <tr><th scope="row">Tracking</th><td><span class="tag">algorithm</span></td><td>ByteTrack (Kalman filter + IoU matching)</td><td>Stable identities through short occlusions</td></tr>
+              <tr><th scope="row">Signal state</th><td><span class="tag">rule-based</span></td><td>Lamp colours in fixed image boxes</td><td>The signal head never moves; colour thresholds are exact and explainable</td></tr>
+              <tr><th scope="row">Scene layout</th><td><span class="tag">hand-annotated</span></td><td>Carriageway, islands, crosswalks, stop line, queue zone, junction box, bus stop</td><td>One fixed camera: half an hour of drawing beats a learned segmentation</td></tr>
+              <tr><th scope="row">Event rules</th><td><span class="tag">rule-based</span></td><td>Tracks + layout + signal state, one rule per class</td><td>Each event has a legal definition; rules can be audited and tuned without many labels</td></tr>
+              <tr><th scope="row">Segment post-processing</th><td><span class="tag">rule-based</span></td><td>Merge gaps, trim, minimum length</td><td>Temporal IoU rewards tight, unfragmented segments</td></tr>
+              <tr><th scope="row">Conflict measure</th><td><span class="tag">physics</span></td><td>Footprint time-to-contact → DRAC-style required deceleration</td><td>Causal and interpretable</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 class="sub-head">One rule per event class</h3>
+        <div id="rules-list"></div>
+      </div>
+    </section>
+
+    <!-- 4. EDA -->
+    <section id="eda" class="section" aria-labelledby="eda-title">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="eyebrow">Exploratory data analysis</p>
+          <h2 id="eda-title">What is in the footage</h2>
+          <p class="lede">Before writing a single rule we measured the videos: lighting, who is in view and when, how the signal cycles, where queues form and how fast vehicles move.</p>
+        </header>
+        <div id="eda-body" class="stack"><p class="loading">Loading EDA…</p></div>
+      </div>
+    </section>
+
+    <!-- 5. Results -->
+    <section id="results" class="section" aria-labelledby="results-title">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="eyebrow">Results</p>
+          <h2 id="results-title">Results on the sample videos</h2>
+          <p class="lede">The annotated render, every detected event on a timeline, the risk curve and the signal state, all on the same clock. Click anything to jump the video there.</p>
+        </header>
+        <div id="results-picker" class="toolbar"></div>
+        <div id="results-view"><p class="loading">Loading results…</p></div>
+      </div>
+    </section>
+
+    <!-- 10. Metrics -->
+    <section id="metrics" class="section" aria-labelledby="metrics-title">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="eyebrow">Metrics</p>
+          <h2 id="metrics-title">How well it works</h2>
+          <p class="lede">Scores on our own labels of the sample videos, per-class F1 at each temporal-IoU threshold, ablations and runtime.</p>
+        </header>
+        <div id="metrics-body" class="stack"><p class="loading">Loading metrics…</p></div>
+      </div>
+    </section>
+
+    <!-- 6. Live demo -->
+    <section id="demo" class="section" aria-labelledby="demo-title">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="eyebrow">Live demo</p>
+          <h2 id="demo-title">Run it on your own clip</h2>
+          <p class="lede">Upload a short .mp4. The server runs the full pipeline and returns the same views as the results above.</p>
+        </header>
+        <div id="demo-body" class="stack"><p class="loading">Loading demo…</p></div>
+      </div>
+    </section>
+
+    <!-- 7. Operator dashboard -->
+    <section id="dashboard" class="section" aria-labelledby="dashboard-title">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="eyebrow">Operator dashboard</p>
+          <h2 id="dashboard-title">All sample videos at a glance</h2>
+          <p class="lede">What a traffic operator would see: how many events of each kind, when they happen and where.</p>
+        </header>
+        <div id="dashboard-body" class="stack"><p class="loading">Loading dashboard…</p></div>
+      </div>
+    </section>
+
+    <!-- 8. Report -->
+    <section id="report" class="section" aria-labelledby="report-title">
+      <div class="wrap wrap--narrow">
+        <header class="section-head">
+          <p class="eyebrow">Report</p>
+          <h2 id="report-title">What we built, what worked, what did not</h2>
+        </header>
+        <div id="report-body"><p class="loading">Loading report…</p></div>
+      </div>
+    </section>
+
+    <!-- 9. Links -->
+    <section id="links" class="section" aria-labelledby="links-title">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="eyebrow">Links</p>
+          <h2 id="links-title">Code, weights and predictions</h2>
+        </header>
+        <div id="links-body"><p class="loading">Loading links…</p></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <p><strong>RoadSense</strong> by <span data-team-name>our team</span> · WIUT Hackathon 2026, Computer Vision track</p>
+      <p><a href="#home">Back to top</a></p>
+    </div>
+  </footer>
+</body>
+</html>

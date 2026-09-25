@@ -103,21 +103,22 @@ def illegal_u_turn(ctx: Context) -> list[Event]:
     for tr in ctx.vehicles.values():
         if tr.duration < 3.0 or not is_continuous(tr):
             continue
-        x1, _, x2, _ = tr.box.T
-        if (x1 < 5).any() or (x2 > 1915).any():
-            continue  # clipped at the frame edge: box centre and heading are unreliable
+        x1, y1, x2, y2 = tr.box.T
+        clipped = (x1 < 5) | (y1 < 5) | (x2 > 1915) | (y2 > 1075)  # foot point is not the ground contact
         v = tr.velocity(1.0)
-        moving = np.linalg.norm(v, axis=1) > MOVING_SPEED
+        moving = (np.linalg.norm(v, axis=1) > MOVING_SPEED) & ~clipped
         if moving.sum() < 10:
             continue
         t, v = tr.t[moving], v[moving]
         heading = np.unwrap(np.arctan2(v[:, 1], v[:, 0]))
-        h0 = np.median(heading[: max(3, len(heading) // 8)])
+        edge = max(3, len(heading) // 8)
+        h0, h1 = np.median(heading[:edge]), np.median(heading[-edge:])
+        reversal = abs((np.degrees(h1 - h0) + 180.0) % 360.0 - 180.0)  # modulo 360: jitter can unwrap a full turn
+        if reversal < UTURN_MIN_DEG:
+            continue  # net reversal of direction, not just a sharp (perspective-exaggerated) turn
         turned = np.degrees(np.abs(heading - h0))
-        if turned.max() < UTURN_MIN_DEG:
-            continue
         start = t[np.argmax(turned > 20.0)]
-        end = t[np.argmax(turned >= min(turned.max(), 170.0) - 10.0)]
+        end = t[np.argmax(turned >= reversal - 10.0)]
         if end - start >= UTURN_MIN_S:
             events.append(Event(float(start), float(end), "illegal_u_turn", {tr.tid}))
     return events

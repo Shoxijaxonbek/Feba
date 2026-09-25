@@ -78,8 +78,21 @@ export async function plot(el, build, onReady) {
   if (first && onReady) onReady(el, Plotly);
 }
 
-/** Render when the element nears the viewport. */
-export const plotLazy = (el, build, onReady) => whenVisible(el, () => plot(el, build, onReady));
+const pending = new Map(); // element -> latest [build, onReady] waiting for visibility
+
+/** Render when the element nears the viewport; later calls replace the pending build. */
+export function plotLazy(el, build, onReady) {
+  if (charts.has(el)) return plot(el, build, onReady);
+  const waiting = pending.has(el);
+  pending.set(el, [build, onReady]);
+  if (!waiting) {
+    whenVisible(el, () => {
+      const [b, r] = pending.get(el);
+      pending.delete(el);
+      plot(el, b, r);
+    });
+  }
+}
 
 export function rethemeAll() {
   if (!window.Plotly) return;
