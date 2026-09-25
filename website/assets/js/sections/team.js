@@ -6,8 +6,6 @@ const LINKS = [
   ['github', 'GitHub', ICON.github],
   ['linkedin', 'LinkedIn', ICON.linkedin],
   ['portfolio', 'Portfolio', ICON.globe],
-  ['youtube', 'YouTube', ICON.youtube],
-  ['telegram', 'Telegram', ICON.telegram],
 ];
 
 const initials = (name) => (name || '?').split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
