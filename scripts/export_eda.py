@@ -85,7 +85,7 @@ def trajectory_image(observations: list[Observation], background: np.ndarray, pe
         tracks = [tr for tr in obs.tracks.values() if tr.duration > 2.0]
         for i in rng.permutation(len(tracks))[:per_video]:
             tr = tracks[i]
-            colour = {"vehicle": (0, 215, 255), "person": (255, 80, 255), "two_wheeler": (0, 140, 255)}[tr.group]
+            colour = {"vehicle": (0, 215, 255), "person": (255, 80, 255), "two_wheeler": (0, 140, 255), "obstacle": (60, 255, 60)}[tr.group]
             cv2.polylines(img, [tr.smooth_foot().astype(np.int32).reshape(-1, 1, 2)], False, colour, 1, cv2.LINE_AA)
     return img
 

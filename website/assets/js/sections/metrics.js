@@ -41,7 +41,7 @@ function perClassTable(perClass) {
 function ablationTable(ab) {
   const rows = Array.isArray(ab.rows) ? ab.rows : [];
   const keys = [...new Set(rows.flatMap((r) => Object.keys(r)))].filter((k) => k !== 'variant');
-  const title = (k) => ({ score_a: 'Score A', score_b: 'Score B', sec_per_min: 'Seconds per video minute' }[k] || k.replace(/_/g, ' '));
+  const title = (k) => ({ score_a: 'Score A', score_b: 'Score B', sec_per_min: 'Sec / video min' }[k] || k.replace(/_/g, ' '));
   const best = Object.fromEntries(keys.filter((k) => k.startsWith('score')).map((k) => [k, Math.max(...rows.map((r) => r[k]).filter(Number.isFinite))]));
   return h('div', { class: 'card' },
     h('h4', { class: 'card-title' }, ab.name || 'Ablation'),
@@ -87,7 +87,7 @@ export async function initMetrics() {
     perClass ? h('div', { class: 'card' }, h('div', { class: 'card-head' }, h('h3', {}, 'Per-class F1'),
       h('p', { class: 'hint' }, 'A predicted segment counts as a hit when its temporal IoU with a same-class label reaches the threshold.')), perClassTable(perClass)) : null,
     ablations.length ? h('h3', { class: 'sub-head' }, 'Ablations') : null,
-    ablations.length ? h('div', { class: 'grid-3' }, ablations.map(ablationTable)) : null,
+    ablations.length ? h('div', { class: 'ablations' }, ablations.map(ablationTable)) : null,
     timing.length ? h('div', { class: 'card' }, h('div', { class: 'card-head' }, h('h3', {}, 'Runtime'),
       h('p', { class: 'hint' }, 'Wall-clock time on our machine; the budget is 3× the video duration.')), timingTable(timing)) : null);
 }

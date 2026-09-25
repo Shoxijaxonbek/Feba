@@ -15,11 +15,13 @@ from .rules import detect_all
 from .scene import Scene
 from .segments import Event
 from .signals import SignalReader
+from .video import probe
 from .utils import set_seed
 
 DETECTOR_WEIGHTS = os.environ.get("ROADWATCH_WEIGHTS", "yolo11m.pt")
 DETECTOR_IMGSZ = int(os.environ.get("ROADWATCH_IMGSZ", "1280"))
 PART_A_FPS = float(os.environ.get("ROADWATCH_FPS", "10"))
+PERCEPTION_SHARE = 0.9   # perception may use at most this x the video duration (rules take ~0.15x)
 DEVICE = os.environ.get("ROADWATCH_DEVICE")  # None = cuda if available
 
 
@@ -39,11 +41,12 @@ def get_flow() -> FlowField | None:
     return FlowField.load()
 
 
-def observe(video_path: str, progress=None, max_seconds: float | None = None) -> Observation:
+def observe(video_path: str, progress=None, max_seconds: float | None = None,
+            max_wall_s: float | None = None) -> Observation:
     scene = get_scene()
     return observe_video(video_path, get_detector(), target_fps=PART_A_FPS,
                          observers={"signals": SignalReader(scene.signals)}, progress=progress,
-                         max_seconds=max_seconds)
+                         max_seconds=max_seconds, max_wall_s=max_wall_s)
 
 
 def events_from_observation(obs: Observation) -> list[Event]:
@@ -51,5 +54,5 @@ def events_from_observation(obs: Observation) -> list[Event]:
 
 
 def detect_events(video_path: str) -> list[list]:
-    obs = observe(video_path)
+    obs = observe(video_path, max_wall_s=PERCEPTION_SHARE * probe(video_path).duration)
     return [ev.as_list() for ev in events_from_observation(obs)]

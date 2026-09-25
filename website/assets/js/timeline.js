@@ -19,10 +19,16 @@ function assignLanes(items) {
   });
 }
 
-export function tickStep(duration) {
-  const steps = [5, 10, 15, 30, 60, 120, 300, 600, 1800];
-  return steps.find((st) => duration / st <= 8) || 3600;
+/** Axis ticks shared by timelines and time charts, so their grids line up. */
+export function timeTicks(duration) {
+  const step = [5, 10, 15, 30, 60, 120, 300, 600, 1800].find((st) => duration / st <= 8) || 3600;
+  const tickvals = [];
+  for (let t = 0; t <= duration + 1e-6; t += step) tickvals.push(t);
+  return { tickvals, ticktext: tickvals.map((t) => fmtTime(t, false)) };
 }
+
+/** Width of a timeline's label column in px; charts use it as their left margin to align with the tracks. */
+export const labelWidth = (tlEl) => parseFloat(getComputedStyle(tlEl).getPropertyValue('--tl-label')) || 120;
 
 /**
  * rows: [{label, color, count?, items: [{start, end, title, detail, color?, data}]}]
@@ -36,11 +42,8 @@ export function createTimeline({ duration, rows, signal, onSeek, ariaLabel }) {
   const playhead = h('div', { class: 'tl-playhead', hidden: true, 'aria-hidden': 'true' });
   const root = h('div', { class: `tl${onSeek ? '' : ' tl--static'}`, role: 'group', 'aria-label': ariaLabel || 'Event timeline' });
 
-  const step = tickStep(duration);
-  const ticks = [];
-  for (let t = 0, i = 0; t <= duration + 1e-6; t += step, i++) {
-    ticks.push(h('span', { class: `tl-tick${i % 2 ? ' tl-tick--odd' : ''}`, style: { left: pct(t) } }, fmtTime(t, false)));
-  }
+  const { tickvals, ticktext } = timeTicks(duration);
+  const ticks = tickvals.map((t, i) => h('span', { class: `tl-tick${i % 2 ? ' tl-tick--odd' : ''}`, style: { left: pct(t) } }, ticktext[i]));
   root.append(h('div', { class: 'tl-row tl-row--axis', 'aria-hidden': 'true' },
     h('div', { class: 'tl-label' }), h('div', { class: 'tl-track tl-track--axis' }, ticks)));
 

@@ -8,6 +8,7 @@ from ..segments import Event, merge_events
 from .common import Context, build_context
 from .conflict import accident, congestion, near_miss
 from .motion import illegal_u_turn, stopped_vehicle, wrong_way
+from .obstacle import road_obstacle
 from .pedestrian import failure_to_yield, jaywalking
 from .signal import red_light, stop_line
 
@@ -22,6 +23,7 @@ RULES = {
     "wrong_way": wrong_way,
     "illegal_u_turn": lambda ctx, flow: illegal_u_turn(ctx),
     "congestion": lambda ctx, flow: congestion(ctx),
+    "road_obstacle": lambda ctx, flow: road_obstacle(ctx),
 }
 
 

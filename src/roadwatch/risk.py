@@ -18,6 +18,7 @@ with a fast-attack / slow-release filter so that one conflict is one alarm.
 from __future__ import annotations
 
 import math
+import time
 from collections import deque
 
 import cv2
@@ -27,7 +28,7 @@ from . import alignment
 from .detector import Detector
 from .scene import Scene
 from .tracking import MultiTracker
-from .video import SCENE_W
+from .video import SCENE_H, SCENE_W
 
 HISTORY_S = 1.2       # velocity is fitted on this much track history
 HORIZON_S = 3.0       # look-ahead for the footprint-overlap test
@@ -35,10 +36,10 @@ MIN_REL_SPEED = 0.3   # relative speed (sizes/s) below which a pair is ignored
 PARKED_S = 5.0        # road users standing still longer than this (parked, queued) are left out
 STILL_PX_S = 12.0
 FOOTPRINT = {"vehicle": 0.30, "two_wheeler": 0.20, "person": 0.12}  # ground part of the box height
-CALIB_MID = 6.5       # raw score giving risk 0.5 (just above the 99.9th percentile on normal traffic)
+CALIB_MID = 7.5       # raw score giving risk 0.5 (above the maximum seen on normal traffic in the samples)
 CALIB_SLOPE = 1.2
 RELEASE_PER_S = 0.5   # smoothed score decays at most this much per second
-DETECT_W = 1280       # frames are downscaled to this width before detection
+MAX_STRIDE = 96       # time-budget guard never thins detection below one frame in ~3 s
 
 
 class _History:
@@ -112,9 +113,13 @@ class CausalRisk:
     def __init__(self, detector: Detector | None, scene: Scene, proc_fps: float = 5.0):
         self.detector, self.scene, self.proc_fps = detector, scene, proc_fps
 
-    def reset(self, meta: dict) -> None:
+    def reset(self, meta: dict, budget_s: float | None = None) -> None:
+        """`budget_s`: wall-clock seconds Part B may take for this video (harness decoding included)."""
         fps = float(meta.get("fps") or 25.0)
         self.stride = max(1, round(fps / self.proc_fps))
+        self.n_frames = int(meta.get("n_frames") or 0)
+        self.budget_s = budget_s
+        self.t_reset = time.perf_counter()
         self.tracker = MultiTracker(fps=fps / self.stride)
         self.hist: dict[int, _History] = {}
         self.group: dict[int, str] = {}
@@ -126,17 +131,30 @@ class CausalRisk:
         self.prev_danger: dict[tuple[int, int], float] = {}
         self.to_reference: np.ndarray | None = None
 
+    def _check_budget(self) -> None:
+        """Thin out detection if the projected Part B time would overrun its budget.
+
+        The harness decodes every frame in between our calls, so the projection covers
+        its decoding too; going over the budget would void the whole video (Part A too).
+        """
+        if not self.budget_s or not self.n_frames or self.idx < 100 or self.idx % 100:
+            return
+        elapsed = time.perf_counter() - self.t_reset
+        projected = elapsed * self.n_frames / self.idx
+        if projected > self.budget_s and self.stride < MAX_STRIDE:
+            self.stride = min(MAX_STRIDE, self.stride * 2)
+
     def step(self, frame: np.ndarray, t: float) -> float:
         i, self.idx = self.idx, self.idx + 1
+        self._check_budget()
         if i % self.stride:
             return self.score
-        # downscale on the CPU first: uploading full 4K frames to the GPU cost more than inference
-        small = cv2.resize(frame, (DETECT_W, DETECT_W * frame.shape[0] // frame.shape[1]),
-                           interpolation=cv2.INTER_LINEAR)
+        # same input as Part A (area-downscaled scene frame): the calibration is shared, and
+        # uploading full 4K frames to the GPU cost more than the inference itself
+        scene_frame = cv2.resize(frame, (SCENE_W, SCENE_H), interpolation=cv2.INTER_AREA)
         if self.to_reference is None:  # register the view once, on the first frame we see
-            self.to_reference = alignment.estimate(cv2.resize(small, (SCENE_W, SCENE_W * 9 // 16)))
-        dets = self.detector([small])[0]
-        dets[:, :4] *= SCENE_W / DETECT_W
+            self.to_reference = alignment.estimate(scene_frame)
+        dets = self.detector([scene_frame])[0]
         dets[:, :4] = alignment.map_boxes(self.to_reference, dets[:, :4])
         return self.update(t, dets)
 
@@ -157,6 +175,8 @@ class CausalRisk:
     def _raw_risk(self, now: float, active: set[int]) -> float:
         states = {}
         for tid in active:
+            if self.group[tid] not in FOOTPRINT:
+                continue  # animals and loose objects are not scored as colliding road users
             st = self.hist[tid].state(now)
             if st is None:
                 continue

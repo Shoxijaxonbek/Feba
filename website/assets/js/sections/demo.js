@@ -15,19 +15,23 @@ const STAGES = {
   events: 'Applying the event rules', risk: 'Scoring accident risk', rendering: 'Rendering the annotated video',
   render: 'Rendering the annotated video', done: 'Done',
 };
-const stageText = (s) => STAGES[s] || (s ? String(s).replace(/_/g, ' ') : 'Working');
+const stageText = (s) => {
+  const text = STAGES[s] || String(s || 'working').replace(/_/g, ' ');
+  return text[0].toUpperCase() + text.slice(1);
+};
 
 class OfflineError extends Error {}
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-/** GET /api/jobs: FastAPI answers 405 (POST-only route) or 200; static hosts answer 404. */
+/** GET /api/health -> {ok, queue, ...} from the demo server; null on static hosting (404) or network errors. */
 async function probeBackend() {
   try {
-    const res = await fetch(`${API}/jobs`, { method: 'GET', cache: 'no-store' });
-    return res.status !== 404;
+    const res = await fetch(`${API}/health`, { cache: 'no-store' });
+    const body = res.ok ? await res.json() : null;
+    return body?.ok ? body : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -86,6 +90,7 @@ export async function initDemo() {
   let file = null;
   let view = null;
   let busy = false;
+  let online = null; // /api/health response, once probed
 
   fill(root,
     h('div', { class: 'demo-grid' },
@@ -180,12 +185,13 @@ export async function initDemo() {
       progress.hidden = true;
       say('success', `Done in ${fmtTime((Date.now() - started) / 1000, false)}. ${result.events?.length ?? 0} events found.`);
       view = mountResult(resultBox, result, {
-        name: file.name, videoUrl: result.annotated_video || `${API}/jobs/${encodeURIComponent(id)}/video`,
+        name: file.name, videoUrl: result.annotated_video || `${API}/jobs/${encodeURIComponent(id)}/video`, poster: result.poster,
         gallery: (result.events || []).some((e) => e.thumb),
       });
     } catch (err) {
       progress.hidden = true;
-      if (err instanceof OfflineError) offlineNotice();
+      if (err instanceof OfflineError && !online) offlineNotice();
+      else if (err instanceof OfflineError) say('error', h('strong', {}, 'Could not reach the demo server. '), 'Check your connection and try again.');
       else say('error', h('strong', {}, 'Something went wrong. '), err.message || String(err));
     } finally {
       setBusy(false);
@@ -216,8 +222,9 @@ export async function initDemo() {
     if (!busy) choose(e.dataTransfer.files[0]);
   });
 
-  const online = await probeBackend();
+  online = await probeBackend();
+  const queued = Number.isFinite(online?.queue) && online.queue > 0 ? ` ${online.queue} job(s) ahead of you.` : '';
   fill(status, h('span', { class: `dot ${online ? 'dot--ok' : 'dot--off'}`, 'aria-hidden': 'true' }),
-    online ? 'Demo server online.' : 'Demo server offline on this copy of the site.');
+    online ? `Demo server online.${queued}` : 'Demo server offline on this copy of the site.');
   if (!online) offlineNotice();
 }

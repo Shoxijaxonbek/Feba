@@ -13,7 +13,7 @@ from .perception import Observation
 from .segments import Event
 from .video import iter_frames
 
-GROUP_BGR = {"vehicle": (0, 215, 255), "person": (255, 80, 255), "two_wheeler": (0, 140, 255)}
+GROUP_BGR = {"vehicle": (0, 215, 255), "person": (255, 80, 255), "two_wheeler": (0, 140, 255), "obstacle": (60, 255, 60)}
 EVENT_BGR = (40, 40, 255)
 SIGNAL_BGR = {"red": (40, 40, 255), "amber": (0, 180, 255), "green": (60, 220, 60), "unknown": (160, 160, 160)}
 LABEL_TEXT = {

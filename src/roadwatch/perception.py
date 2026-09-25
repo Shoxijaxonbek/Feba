@@ -55,8 +55,13 @@ class Observation:
 def observe_video(path: str, detector: Detector, target_fps: float = 10.0, batch: int = 8,
                   observers: dict[str, FrameObserver] | None = None,
                   progress: Callable[[float], None] | None = None,
-                  max_seconds: float | None = None) -> Observation:
-    """Detect and track road users in `path` (only the first `max_seconds` if given)."""
+                  max_seconds: float | None = None, max_wall_s: float | None = None) -> Observation:
+    """Detect and track road users in `path` (only the first `max_seconds` if given).
+
+    `max_wall_s` is a wall-clock budget: if the run is projected to exceed it (slow
+    decoding on the evaluation machine), detection is thinned to every 2nd, then
+    every 4th sampled frame. Signal lamps are still read on every frame.
+    """
     info = probe(path)
     if max_seconds is not None and info.duration > max_seconds:
         info = replace(info, duration=max_seconds, n_frames=int(max_seconds * info.fps))
@@ -69,6 +74,7 @@ def observe_video(path: str, detector: Detector, target_fps: float = 10.0, batch
     t_start = time.perf_counter()
     t_detect = 0.0
     to_reference = None  # frame -> reference view, estimated on the first frame
+    thin, k = 1, 0
 
     def flush() -> None:
         nonlocal t_detect
@@ -93,12 +99,19 @@ def observe_video(path: str, detector: Detector, target_fps: float = 10.0, batch
                     obs.align(alignment.invert(to_reference))
         for obs in observers.values():
             obs.observe(t, frame)
+        k += 1
+        if (k - 1) % thin:
+            continue
         buf_t.append(t)
         buf_f.append(frame)
         if len(buf_f) == batch:
             flush()
             if progress and info.duration:
                 progress(min(1.0, t / info.duration))
+            if max_wall_s and t > 5.0 and thin < 4:
+                projected = (time.perf_counter() - t_start) * info.duration / t
+                if projected > max_wall_s:
+                    thin *= 2
     if buf_f:
         flush()
 
@@ -110,5 +123,6 @@ def observe_video(path: str, detector: Detector, target_fps: float = 10.0, batch
         detections=all_dets,
         side={name: obs.result() for name, obs in observers.items()}
         | {"alignment": (to_reference if to_reference is not None else alignment.IDENTITY).tolist()},
-        timing={"total_sec": round(total, 2), "detect_sec": round(t_detect, 2), "frames": len(times)},
+        timing={"total_sec": round(total, 2), "detect_sec": round(t_detect, 2), "frames": len(times),
+                "thinned": thin},
     )
