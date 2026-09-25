@@ -18,7 +18,6 @@ with a fast-attack / slow-release filter so that one conflict is one alarm.
 from __future__ import annotations
 
 import math
-import time
 from collections import deque
 
 import cv2
@@ -28,6 +27,7 @@ from . import alignment
 from .detector import Detector
 from .scene import Scene
 from .tracking import MultiTracker
+from .utils import Pace
 from .video import SCENE_H, SCENE_W
 
 HISTORY_S = 1.2       # velocity is fitted on this much track history
@@ -117,9 +117,8 @@ class CausalRisk:
         """`budget_s`: wall-clock seconds Part B may take for this video (harness decoding included)."""
         fps = float(meta.get("fps") or 25.0)
         self.stride = max(1, round(fps / self.proc_fps))
-        self.n_frames = int(meta.get("n_frames") or 0)
-        self.budget_s = budget_s
-        self.t_reset = time.perf_counter()
+        # the harness decodes every frame between our calls, so the pace covers its decoding too
+        self.pace = Pace(budget_s, total=float(meta.get("n_frames") or 0), warmup=10.0 * fps)
         self.tracker = MultiTracker(fps=fps / self.stride)
         self.hist: dict[int, _History] = {}
         self.group: dict[int, str] = {}
@@ -131,22 +130,12 @@ class CausalRisk:
         self.prev_danger: dict[tuple[int, int], float] = {}
         self.to_reference: np.ndarray | None = None
 
-    def _check_budget(self) -> None:
-        """Thin out detection if the projected Part B time would overrun its budget.
-
-        The harness decodes every frame in between our calls, so the projection covers
-        its decoding too; going over the budget would void the whole video (Part A too).
-        """
-        if not self.budget_s or not self.n_frames or self.idx < 100 or self.idx % 100:
-            return
-        elapsed = time.perf_counter() - self.t_reset
-        projected = elapsed * self.n_frames / self.idx
-        if projected > self.budget_s and self.stride < MAX_STRIDE:
-            self.stride = min(MAX_STRIDE, self.stride * 2)
-
     def step(self, frame: np.ndarray, t: float) -> float:
         i, self.idx = self.idx, self.idx + 1
-        self._check_budget()
+        # going over the time budget would void the whole video (Part A too): thin detection instead
+        if i % 100 == 0 and self.stride < MAX_STRIDE and self.pace.over_budget(i):
+            self.stride = min(MAX_STRIDE, self.stride * 2)
+            self.pace.reset_window()
         if i % self.stride:
             return self.score
         # same input as Part A (area-downscaled scene frame): the calibration is shared, and
