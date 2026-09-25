@@ -2,11 +2,11 @@
  "dev_set": "our own labels of C3902 (labels/); candidates came from our rules at loose thresholds, so recall is optimistic",
  "per_class": {
   "failure_to_yield": {
-   "f1_03": 0.788,
-   "f1_05": 0.606,
-   "f1_07": 0.485,
+   "f1_03": 0.813,
+   "f1_05": 0.625,
+   "f1_07": 0.562,
    "tp": 10,
-   "fp": 10,
+   "fp": 9,
    "fn": 3
   },
   "illegal_u_turn": {
@@ -18,11 +18,11 @@
    "fn": 0
   },
   "jaywalking": {
-   "f1_03": 0.714,
-   "f1_05": 0.714,
-   "f1_07": 0.714,
+   "f1_03": 0.769,
+   "f1_05": 0.769,
+   "f1_07": 0.769,
    "tp": 5,
-   "fp": 3,
+   "fp": 2,
    "fn": 1
   },
   "stopped_vehicle": {
@@ -34,33 +34,53 @@
    "fn": 0
   }
  },
- "score_a": 0.835,
+ "score_a": 0.859,
  "score_b": null,
  "ablations": [
+  {
+   "name": "Dev sets (submitted pipeline, predictions_samples.json)",
+   "rows": [
+    {
+     "variant": "C3902 (labels from loose-threshold candidates, reviewed)",
+     "score_a": 0.859,
+     "micro_f1_05": 0.694
+    },
+    {
+     "variant": "C3896 + C3897 + C3905 (our detections, reviewed: precision only)",
+     "score_a": 0.998,
+     "micro_f1_05": 0.993
+    },
+    {
+     "variant": "All four samples",
+     "score_a": 0.97,
+     "micro_f1_05": 0.918
+    }
+   ]
+  },
   {
    "name": "Detector size and sampling rate (Part A, dev labels)",
    "rows": [
     {
      "variant": "YOLO11m @ 10 fps (submitted)",
-     "score_a": 0.835,
-     "micro_f1_05": 0.667,
+     "score_a": 0.859,
+     "micro_f1_05": 0.694,
      "perception_x_realtime": 0.35
     },
     {
      "variant": "YOLO11s @ 10 fps",
      "score_a": 0.65,
-     "micro_f1_05": 0.593,
+     "micro_f1_05": 0.604,
      "perception_x_realtime": 0.29
     },
     {
      "variant": "YOLO11m @ 5 fps",
-     "score_a": 0.819,
-     "micro_f1_05": 0.64,
+     "score_a": 0.569,
+     "micro_f1_05": 0.6,
      "perception_x_realtime": 0.24
     },
     {
-     "variant": "YOLO11s @ 5 fps (live demo)",
-     "score_a": 0.432,
+     "variant": "YOLO11s @ 5 fps",
+     "score_a": 0.321,
      "micro_f1_05": 0.549,
      "perception_x_realtime": 0.24
     }
@@ -69,11 +89,32 @@
  ],
  "timing": [
   {
+   "video": "C3896.MP4",
+   "duration": 340.34,
+   "part_a_sec": 174.4,
+   "part_b_sec": 507.9,
+   "budget_sec": 1021.0
+  },
+  {
+   "video": "C3897.MP4",
+   "duration": 317.82,
+   "part_a_sec": 140.1,
+   "part_b_sec": 415.3,
+   "budget_sec": 953.5
+  },
+  {
    "video": "C3902.MP4",
    "duration": 317.82,
-   "part_a_sec": 156.8,
-   "part_b_sec": 426.3,
+   "part_a_sec": 149.2,
+   "part_b_sec": 414.4,
    "budget_sec": 953.5
+  },
+  {
+   "video": "C3905.MP4",
+   "duration": 127.63,
+   "part_a_sec": 58.4,
+   "part_b_sec": 155.6,
+   "budget_sec": 382.9
   }
  ]
 }
