@@ -26,11 +26,12 @@
   },
   "stop_lines": {
     "main": {"_comment": "main approach, traffic moves down-right across it; zone = between the line and the far edge of crosswalk A",
-             "line": [[235, 566], [892, 486]], "signal": "main",
+             "line": [[235, 566], [892, 486]], "signal": "main", "queue_zone": "main_approach",
              "zone": [[235, 566], [892, 486], [1060, 522], [1158, 588], [333, 702], [292, 650]]}
   },
   "queue_zones": {
-    "main_approach": [[0, 205], [400, 298], [800, 430], [905, 475], [892, 486], [235, 566], [0, 392]]
+    "main_approach": [[0, 205], [400, 298], [800, 430], [905, 475], [892, 486], [235, 566], [0, 392]],
+    "right_approach": [[1380, 590], [1920, 610], [1920, 890], [1500, 800], [1380, 700]]
   },
   "intersection": {
     "box": [[335, 702], [1158, 588], [1300, 600], [1920, 640], [1920, 1080], [842, 1080], [712, 978],

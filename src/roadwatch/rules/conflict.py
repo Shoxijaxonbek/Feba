@@ -131,7 +131,7 @@ def congestion(ctx: Context) -> list[Event]:
         green = ctx.signal_at(sl["signal"], times) == GREEN
         for tr in ctx.vehicles.values():
             idx = np.clip(np.searchsorted(times, tr.t - 1e-6), 0, len(times) - 1)
-            queued = ctx.scene.in_queue_zone(tr.smooth_foot()) & (tr.speed() < 2 * STILL_SPEED)
+            queued = ctx.scene.queue_zones[sl["queue_zone"]].contains(tr.smooth_foot()) & (tr.speed() < 2 * STILL_SPEED)
             for i in idx[queued]:
                 members[i].add(tr.tid)
         jammed = green & (np.array([len(m) for m in members]) >= CONGESTION_MIN_VEHICLES)

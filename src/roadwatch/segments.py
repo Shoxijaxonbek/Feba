@@ -11,6 +11,15 @@ class Event:
     label: str
     tracks: set[int] = field(default_factory=set)   # track ids that caused it (for review / rendering)
     info: dict = field(default_factory=dict)
+    spans: dict[int, list[tuple[float, float]]] = field(default_factory=dict)  # when each track was involved
+
+    def __post_init__(self) -> None:
+        for tid in self.tracks:
+            self.spans.setdefault(tid, [(self.start, self.end)])
+
+    def involved(self, t: float, pad: float = 0.05) -> set[int]:
+        """Tracks taking part in the event at time t."""
+        return {tid for tid, spans in self.spans.items() if any(s - pad <= t <= e + pad for s, e in spans)}
 
     def as_list(self) -> list:
         return [round(self.start, 2), round(self.end, 2), self.label]
@@ -39,7 +48,8 @@ def merge_events(events: list[Event], duration: float) -> list[Event]:
     for ev in events:
         s, e = max(0.0, ev.start), min(duration, ev.end)
         if e > s:
-            by_label.setdefault(ev.label, []).append(Event(s, e, ev.label, set(ev.tracks), dict(ev.info)))
+            spans = {tid: list(v) for tid, v in ev.spans.items()}
+            by_label.setdefault(ev.label, []).append(Event(s, e, ev.label, set(ev.tracks), dict(ev.info), spans))
     out = []
     for label, evs in by_label.items():
         gap = MERGE_GAP.get(label, DEFAULT_MERGE_GAP)
@@ -49,6 +59,8 @@ def merge_events(events: list[Event], duration: float) -> list[Event]:
             if ev.start - cur.end <= gap:
                 cur.end = max(cur.end, ev.end)
                 cur.tracks |= ev.tracks
+                for tid, spans in ev.spans.items():
+                    cur.spans.setdefault(tid, []).extend(spans)
             else:
                 out.append(cur)
                 cur = ev
