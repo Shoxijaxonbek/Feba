@@ -18,6 +18,13 @@ export function h(tag, attrs = {}, ...children) {
   return el;
 }
 
+/** Replace el's children, skipping null/false like h() does. */
+export function fill(el, ...children) {
+  el.replaceChildren();
+  append(el, children);
+  return el;
+}
+
 function append(el, children) {
   for (const c of children.flat(Infinity)) {
     if (c == null || c === false) continue;
@@ -86,6 +93,25 @@ export const fmtNum = (x, digits = 0) =>
   x == null || !isFinite(x) ? '–' : Number(x).toLocaleString('en-US', { maximumFractionDigits: digits, minimumFractionDigits: digits });
 
 export const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
+
+/** Segmented control (a row of toggle buttons); calls onChange(id) when the selection changes. */
+export function segmented(items, selected, onChange, label) {
+  const buttons = items.map((it) => h('button', {
+    type: 'button', class: 'seg-btn', 'aria-pressed': String(it.id === selected), dataset: { id: it.id },
+    onclick: (e) => {
+      if (e.currentTarget.getAttribute('aria-pressed') === 'true') return;
+      selectSegment(group, it.id);
+      onChange(it.id);
+    },
+  }, it.label));
+  const group = h('div', { class: 'seg', role: 'group', 'aria-label': label }, buttons);
+  return group;
+}
+
+/** Mark a segment as selected without firing onChange. */
+export function selectSegment(group, id) {
+  group.querySelectorAll('.seg-btn').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === id)));
+}
 
 /** A link value is usable if it is a non-empty string other than "#". */
 export const isRealLink = (url) => typeof url === 'string' && url.trim() !== '' && url.trim() !== '#';

@@ -1,7 +1,7 @@
 // The result viewer shared by "Results on sample videos" and the live demo: annotated video,
 // "now" panel, clickable event timeline with signal strip, risk curve with playhead, sortable
 // event table, per-class example gallery and failure cases. Everything seeks the same clock.
-import { h, fmtTime, placeholder, whenVisible, stepAt, sampleAt, clamp, ICON } from './util.js';
+import { h, fill, fmtTime, placeholder, whenVisible, stepAt, sampleAt, clamp, ICON } from './util.js';
 import { classInfo, classVar, classColor, classOrder, signalInfo, objectClasses } from './classes.js';
 import { createTimeline, tickStep } from './timeline.js';
 import { plot, layout, alpha, purge } from './plot.js';
@@ -110,7 +110,7 @@ export function mountResult(container, raw, opts = {}) {
     const key = [t.toFixed(1), sig?.id, risk?.toFixed(2), active.map((e) => e.idx).join(','), countText].join('|');
     if (key === st.nowKey) return;
     st.nowKey = key;
-    now.replaceChildren(
+    fill(now,
       h('div', { class: 'now-item' }, h('span', { class: 'now-label' }, 'Time'),
         h('span', { class: 'now-value mono' }, fmtTime(t), h('span', { class: 'now-sub' }, ` / ${fmtTime(D)}`))),
       sig ? h('div', { class: 'now-item' }, h('span', { class: 'now-label' }, 'Main signal'),

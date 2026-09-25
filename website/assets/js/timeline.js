@@ -33,8 +33,8 @@ export function createTimeline({ duration, rows, signal, onSeek, ariaLabel }) {
   const bars = [];
 
   const tip = h('div', { class: 'tl-tip', role: 'tooltip', hidden: true });
-  const playhead = h('div', { class: 'tl-playhead', 'aria-hidden': 'true' });
-  const root = h('div', { class: 'tl', role: 'group', 'aria-label': ariaLabel || 'Event timeline' });
+  const playhead = h('div', { class: 'tl-playhead', hidden: true, 'aria-hidden': 'true' });
+  const root = h('div', { class: `tl${onSeek ? '' : ' tl--static'}`, role: 'group', 'aria-label': ariaLabel || 'Event timeline' });
 
   const step = tickStep(duration);
   const ticks = [];
