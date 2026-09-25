@@ -1,43 +1,121 @@
 {
  "failures": [
   {
-   "video": "C3902", "label": "illegal_u_turn", "start": 39.5, "end": 43.6, "kind": "false positive (fixed)",
+   "video": "C3896",
+   "label": "wrong_way",
+   "start": 8.4,
+   "end": 10.5,
+   "kind": "false positive (fixed)",
+   "title": "Wrong way inside the junction",
+   "text": "Four 'wrong-way' cars in the midday videos were all turning from the right-hand approach on their own green. Inside the junction box several legal flows cross in different signal phases, so a direction learned from all traffic is meaningless there. Wrong-way is now judged on the carriageways only, and boxes cut off by the frame edge are ignored.",
+   "image": "data/failures/wrongway_junction.jpg"
+  },
+  {
+   "video": "C3897",
+   "label": "stop_line",
+   "start": 61.8,
+   "end": 64.0,
+   "kind": "boundary error (fixed)",
+   "title": "Stopped past the line, then drove off on red",
+   "text": "The red car crossed the stop line on amber, stopped on the crosswalk, and after 3 s drove through the junction on red. Our stop_line segment ran until the next green (95 s) because the convention says 'ends when the signal turns green'. It now also ends when the vehicle leaves.",
+   "image": "data/failures/stopline_drove_off.jpg"
+  },
+  {
+   "video": "C3897",
+   "label": "stop_line",
+   "start": 0.1,
+   "end": 21.0,
+   "kind": "borderline (suppressed)",
+   "title": "A bonnet over the stop line",
+   "text": "The front car in the median lane waits with its bonnet ~1 m over the painted line while people cross in front. Technically past the line; we doubt an annotator flags it. A vehicle must now be past the line by more than 0.6 of its own length.",
+   "image": "data/failures/stopline_bonnet.jpg"
+  },
+  {
+   "video": "C3896",
+   "label": "stopped_vehicle",
+   "start": 0.0,
+   "end": 328.0,
+   "kind": "false positive (fixed)",
+   "title": "Queues everywhere look like stopped vehicles",
+   "text": "At midday dozens of vehicles stand still for 10-40 s: left-turners waiting inside the junction, queues at the other approaches' signals, and a jam on the far carriageway. None is a 'stopped vehicle'. The rule now requires the traffic around the vehicle to keep moving; a queue stands still together.",
+   "image": null
+  },
+  {
+   "video": "C3896",
+   "label": "(all)",
+   "start": 0.0,
+   "end": 5.0,
+   "kind": "robustness (fixed)",
+   "title": "The tripod moved between recordings",
+   "text": "The midday videos are shifted by up to 80 px and rotated by 1 degree relative to the dusk ones, and ORB features found too few matches between midday sun and dusk. SIFT with contrast normalisation registers every video to our reference view; zones, stop line and lamp positions then line up (overlay shown).",
+   "image": "data/failures/registration_midday.jpg"
+  },
+  {
+   "video": "C3902",
+   "label": "illegal_u_turn",
+   "start": 39.5,
+   "end": 43.6,
+   "kind": "false positive (fixed)",
    "title": "A left turn that looked like a U-turn",
    "text": "The car enters from the bottom edge. While only its roof is visible the box bottom is stuck at the frame border, so the foot point slides sideways and reads as 'heading right'; the later up-left heading then looks like a 160° reversal. Fix: observations clipped by the frame border are ignored when estimating headings, and the rule compares the start and end headings of the whole manoeuvre instead of the largest deviation.",
    "image": "data/failures/uturn_left_turn.jpg"
   },
   {
-   "video": "C3902", "label": "illegal_u_turn", "start": 215.6, "end": 242.9, "kind": "false positive (fixed)",
+   "video": "C3902",
+   "label": "illegal_u_turn",
+   "start": 215.6,
+   "end": 242.9,
+   "kind": "false positive (fixed)",
    "title": "A bus that turned 360° on paper",
    "text": "Three articulated buses overlap; the tracked box jumps between them, the foot point oscillates and the unwrapped heading accumulates a full turn. Fix: the net heading change is taken modulo 360°, and tracks with position or box-size jumps are discarded.",
    "image": "data/failures/uturn_bus_idswitch.jpg"
   },
   {
-   "video": "C3902", "label": "failure_to_yield", "start": 93.5, "end": 94.1, "kind": "false positive",
+   "video": "C3902",
+   "label": "failure_to_yield",
+   "start": 93.5,
+   "end": 94.1,
+   "kind": "false positive",
    "title": "Waiting is not crossing",
    "text": "Two pedestrians stand at the edge of crosswalk C next to the island while a car passes. They are on the zebra polygon but have not stepped onto the roadway. We already require pedestrians to be 20 px inside the carriageway; telling 'about to step off' from 'waiting' needs their motion, which we do not use yet.",
    "image": "data/failures/fty_island_edge.jpg"
   },
   {
-   "video": "C3902", "label": "failure_to_yield", "start": 202.7, "end": 203.2, "kind": "false positive",
+   "video": "C3902",
+   "label": "failure_to_yield",
+   "start": 202.7,
+   "end": 203.2,
+   "kind": "false positive",
    "title": "A scooter rider counted as a pedestrian",
    "text": "Riders are removed when a bicycle or motorcycle box overlaps them, but this electric scooter is not a COCO class, so its rider stays a 'pedestrian' on crosswalk B.",
    "image": "data/failures/fty_cyclist.jpg"
   },
   {
-   "video": "C3902", "label": "jaywalking", "start": 10.4, "end": 14.2, "kind": "borderline (suppressed)",
+   "video": "C3902",
+   "label": "jaywalking",
+   "start": 10.4,
+   "end": 14.2,
+   "kind": "borderline (suppressed)",
    "title": "Cutting the corner onto a zebra",
    "text": "People step off the corner and join crosswalk C a metre from its end. Strictly they are on the carriageway outside a crossing, but we doubt an annotator would flag it, so jaywalking requires 40 px of distance from every zebra. The price: a few genuine diagonal crossings near zebra C (128-150 s) are missed.",
    "image": "data/failures/jay_corner_cut.jpg"
   },
   {
-   "video": "C3902", "label": "accident", "start": 71.9, "end": 73.0, "kind": "Part B false alarm (fixed)",
-   "title": "Dense green-phase traffic raised the risk alarm",
-   "text": "The first Part B version downscaled frames differently from Part A, so its detections were noisier than the ones we calibrated on, and three alarms fired on ordinary traffic. Part B now uses exactly Part A's preprocessing and its calibration was checked on its own run: no frame of the sample reaches 0.5.",
+   "video": "C3902",
+   "label": "accident",
+   "start": 71.9,
+   "end": 73.0,
+   "kind": "Part B false alarm (fixed)",
+   "title": "Ordinary traffic raised the risk alarm",
+   "text": "Twice. First, Part B downscaled frames differently from Part A, so its detections were noisier than the ones we calibrated on. Then the midday videos produced three one-frame spikes: two cars on converging paths while merging or turning, diverging 0.2 s later. Part B now uses Part A's preprocessing, a conflict must hold for three processed frames (~0.6 s), and on all four samples the risk stays below 0.3.",
    "image": "data/failures/risk_false_alarm.jpg"
   },
   {
-   "video": "C3902", "label": "stopped_vehicle", "start": 0.0, "end": 317.8, "kind": "open question",
+   "video": "C3902",
+   "label": "stopped_vehicle",
+   "start": 0.0,
+   "end": 317.8,
+   "kind": "open question",
    "title": "Parked on the carriageway all clip long",
    "text": "A taxi at the bus stop and a delivery van at the far curb never move. By the class definition (stationary ≥ 10 s on the carriageway, not queued at a signal) this is a stopped vehicle, so we report it; an annotator may see it as parking. Queues at both signals are excluded by queue zones.",
    "image": null

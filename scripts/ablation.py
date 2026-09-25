@@ -27,7 +27,7 @@ VARIANTS = [  # (name, weights, sampling fps); the first one is the submission
     ("YOLO11m @ 10 fps (submitted)", "yolo11m.pt", 10.0),
     ("YOLO11s @ 10 fps", "yolo11s.pt", 10.0),
     ("YOLO11m @ 5 fps", "yolo11m.pt", 5.0),
-    ("YOLO11s @ 5 fps (live demo)", "yolo11s.pt", 5.0),
+    ("YOLO11s @ 5 fps", "yolo11s.pt", 5.0),
 ]
 
 
