@@ -17,6 +17,7 @@ import numpy as np
 from . import alignment
 from .detector import Detector
 from .tracking import MultiTracker, Track
+from .utils import Pace
 from .video import VideoInfo, iter_frames, probe
 
 
@@ -75,6 +76,7 @@ def observe_video(path: str, detector: Detector, target_fps: float = 10.0, batch
     t_detect = 0.0
     to_reference = None  # frame -> reference view, estimated on the first frame
     thin, k = 1, 0
+    pace = Pace(max_wall_s, total=info.duration, warmup=20.0)
 
     def flush() -> None:
         nonlocal t_detect
@@ -108,10 +110,9 @@ def observe_video(path: str, detector: Detector, target_fps: float = 10.0, batch
             flush()
             if progress and info.duration:
                 progress(min(1.0, t / info.duration))
-            if max_wall_s and t > 5.0 and thin < 4:
-                projected = (time.perf_counter() - t_start) * info.duration / t
-                if projected > max_wall_s:
-                    thin *= 2
+            if thin < 4 and pace.over_budget(t):
+                thin *= 2
+                pace.reset_window()
     if buf_f:
         flush()
 
