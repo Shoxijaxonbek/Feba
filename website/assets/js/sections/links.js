@@ -4,6 +4,7 @@ import { loadSite } from '../store.js';
 
 const ITEMS = [
   ['repo', 'Source code', 'Pipeline, rules, evaluation and this website.', ICON.github],
+  ['space', 'Live site and demo', 'This website with the upload demo, hosted on Hugging Face Spaces.', ICON.globe],
   ['weights', 'Model weights', 'Detector weights and the scene configuration files.', ICON.box],
   ['predictions', 'Predictions on the samples', 'predictions_samples.json in the official submission format.', ICON.doc],
   ['report_pdf', 'Report (PDF)', 'The written report for the jury.', ICON.download],

@@ -1,60 +1,56 @@
 {
-  "_mock": true,
   "team": {
-    "name": "Team Name",
+    "name": "Feba",
     "tagline": "Three students who wanted a traffic camera to explain what it sees.",
     "members": [
       {
-        "name": "Member One",
-        "role": "CV / tracking",
+        "name": "Shuxratov Shoxijaxonbek",
+        "role": "Team captain · computer vision",
         "contributions": [
-          "Reference-frame video decoder with PyAV",
-          "YOLO11m detection with GPU pre/post-processing",
-          "ByteTrack in three groups and the traffic-light reader"
+          "Video decoding, YOLO11 detection and ByteTrack tracking",
+          "Scene layout, traffic-light reader and the event rules",
+          "Dev-set labels, evaluation and the Part B risk model"
         ],
-        "github": "#",
-        "linkedin": "#",
-        "portfolio": "#",
+        "github": "https://github.com/Shoxijaxonbek",
+        "linkedin": null,
+        "portfolio": "https://huggingface.co/Shoxijaxonbek",
         "photo": null,
-        "projects": [
-          {"title": "Previous project", "url": "#", "blurb": "One-line description of an earlier project."}
-        ]
+        "projects": []
       },
       {
-        "name": "Member Two",
-        "role": "Rules & evaluation",
+        "name": "Ibragimov Diyorbek",
+        "role": "Frontend developer",
         "contributions": [
-          "Scene layout annotation and lane-direction field",
-          "Event rules and segment post-processing",
-          "Dev-set labels, temporal-IoU evaluation and the Part B risk model"
+          "This website: results viewer, clickable timelines and risk curves",
+          "EDA charts and the operator dashboard",
+          "Mobile layout, light and dark themes"
         ],
-        "github": "#",
-        "linkedin": "#",
+        "github": null,
+        "linkedin": null,
         "portfolio": null,
         "photo": null,
-        "projects": [
-          {"title": "Previous project", "url": "#", "blurb": "One-line description of an earlier project."}
-        ]
+        "projects": []
       },
       {
-        "name": "Member Three",
-        "role": "Web & demo",
+        "name": "Lutfullayev Mirfayz",
+        "role": "Backend developer",
         "contributions": [
-          "This website and the operator dashboard",
-          "FastAPI demo backend and the annotated renders",
-          "EDA notebooks and figures"
+          "Live-demo API: uploads, job queue and progress",
+          "Annotated video rendering and event thumbnails",
+          "Deployment on Hugging Face Spaces"
         ],
-        "github": "#",
+        "github": null,
         "linkedin": null,
-        "portfolio": "#",
+        "portfolio": null,
         "photo": null,
         "projects": []
       }
     ]
   },
   "links": {
-    "repo": "#",
-    "weights": "#",
+    "repo": "https://github.com/Shoxijaxonbek/Feba",
+    "space": "https://huggingface.co/spaces/Shoxijaxonbek/Feba",
+    "weights": "https://github.com/Shoxijaxonbek/Feba/tree/main/weights",
     "predictions": "data/predictions_samples.json",
     "report_pdf": null
   }
