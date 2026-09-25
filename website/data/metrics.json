@@ -1,120 +1,79 @@
 {
-  "_mock": true,
-  "dev_set": "our own labels of the sample videos (C3902, C3905)",
-  "per_class": {
-    "stopped_vehicle": {
-      "f1_03": 0.67,
-      "f1_05": 0.67,
-      "f1_07": 0.4,
-      "tp": 2,
-      "fp": 1,
-      "fn": 1
-    },
-    "illegal_u_turn": {
-      "f1_03": 0.5,
-      "f1_05": 0.4,
-      "f1_07": 0.2,
-      "tp": 2,
-      "fp": 2,
-      "fn": 2
-    },
-    "jaywalking": {
-      "f1_03": 0.62,
-      "f1_05": 0.51,
-      "f1_07": 0.31,
-      "tp": 13,
-      "fp": 6,
-      "fn": 10
-    },
-    "failure_to_yield": {
-      "f1_03": 0.55,
-      "f1_05": 0.43,
-      "f1_07": 0.22,
-      "tp": 12,
-      "fp": 9,
-      "fn": 11
-    },
-    "stop_line": {
-      "f1_03": 0.86,
-      "f1_05": 0.71,
-      "f1_07": 0.57,
-      "tp": 6,
-      "fp": 1,
-      "fn": 1
-    },
-    "red_light": {
-      "f1_03": 0.0,
-      "f1_05": 0.0,
-      "f1_07": 0.0,
-      "tp": 0,
-      "fp": 0,
-      "fn": 2
-    }
+ "dev_set": "our own labels of C3902 (labels/); candidates came from our rules at loose thresholds, so recall is optimistic",
+ "per_class": {
+  "failure_to_yield": {
+   "f1_03": 0.788,
+   "f1_05": 0.606,
+   "f1_07": 0.485,
+   "tp": 10,
+   "fp": 10,
+   "fn": 3
   },
-  "score_a": 0.41,
-  "score_b": null,
-  "ablations": [
+  "illegal_u_turn": {
+   "f1_03": 1.0,
+   "f1_05": 1.0,
+   "f1_07": 1.0,
+   "tp": 1,
+   "fp": 0,
+   "fn": 0
+  },
+  "jaywalking": {
+   "f1_03": 0.714,
+   "f1_05": 0.714,
+   "f1_07": 0.714,
+   "tp": 5,
+   "fp": 3,
+   "fn": 1
+  },
+  "stopped_vehicle": {
+   "f1_03": 1.0,
+   "f1_05": 1.0,
+   "f1_07": 1.0,
+   "tp": 1,
+   "fp": 0,
+   "fn": 0
+  }
+ },
+ "score_a": 0.835,
+ "score_b": null,
+ "ablations": [
+  {
+   "name": "Detector size and sampling rate (Part A, dev labels)",
+   "rows": [
     {
-      "name": "Detector size",
-      "rows": [
-        {
-          "variant": "YOLO11s",
-          "score_a": 0.33,
-          "sec_per_min": 17
-        },
-        {
-          "variant": "YOLO11m (used)",
-          "score_a": 0.41,
-          "sec_per_min": 28
-        },
-        {
-          "variant": "YOLO11l",
-          "score_a": 0.42,
-          "sec_per_min": 41
-        }
-      ]
+     "variant": "YOLO11m @ 10 fps (submitted)",
+     "score_a": 0.835,
+     "micro_f1_05": 0.667,
+     "perception_x_realtime": 0.35
     },
     {
-      "name": "Frame sampling",
-      "rows": [
-        {
-          "variant": "all frames (29.97 fps)",
-          "score_a": 0.41,
-          "sec_per_min": 96
-        },
-        {
-          "variant": "reference frames only (~10 fps, used)",
-          "score_a": 0.41,
-          "sec_per_min": 28
-        },
-        {
-          "variant": "every 6th frame (~5 fps)",
-          "score_a": 0.35,
-          "sec_per_min": 18
-        }
-      ]
+     "variant": "YOLO11s @ 10 fps",
+     "score_a": 0.65,
+     "micro_f1_05": 0.593,
+     "perception_x_realtime": 0.29
     },
     {
-      "name": "Which classes to emit",
-      "rows": [
-        {
-          "variant": "all rules, including weak classes",
-          "score_a": 0.27
-        },
-        {
-          "variant": "only reliable classes (used)",
-          "score_a": 0.41
-        }
-      ]
-    }
-  ],
-  "timing": [
+     "variant": "YOLO11m @ 5 fps",
+     "score_a": 0.819,
+     "micro_f1_05": 0.64,
+     "perception_x_realtime": 0.24
+    },
     {
-      "video": "C3902",
-      "duration": 317.8,
-      "part_a_sec": 147.9,
-      "part_b_sec": 439.1,
-      "budget_sec": 953.5
+     "variant": "YOLO11s @ 5 fps (live demo)",
+     "score_a": 0.432,
+     "micro_f1_05": 0.549,
+     "perception_x_realtime": 0.24
     }
-  ]
+   ]
+  }
+ ],
+ "timing": [
+  {
+   "video": "C3902.MP4",
+   "duration": 317.82,
+   "part_a_sec": 156.8,
+   "part_b_sec": 426.3,
+   "budget_sec": 953.5
+  }
+ ]
 }

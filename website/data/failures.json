@@ -1,43 +1,46 @@
 {
-  "_mock": true,
-  "failures": [
-    {
-      "video": "C3902",
-      "label": "illegal_u_turn",
-      "start": 83.45,
-      "end": 113.88,
-      "kind": "false positive",
-      "title": "A 30-second \"U-turn\"",
-      "text": "A car waiting in the left-turn pocket crept forward for half a minute while its heading drifted by 150 degrees. The rule accumulated the drift. Next step: cap the manoeuvre at 12 s and require real displacement.",
-      "image": "data/failures/C3902_uturn.jpg"
-    },
-    {
-      "video": "C3902",
-      "label": "stopped_vehicle",
-      "start": 0.07,
-      "end": 317.78,
-      "kind": "false positive",
-      "title": "A parked car flagged for the whole video",
-      "text": "A car parked legally on the far kerb sits inside the area we traced as carriageway. The layout polygon needs a parking-bay cut-out.",
-      "image": null
-    },
-    {
-      "video": "C3902",
-      "label": "failure_to_yield",
-      "start": 163.13,
-      "end": 163.43,
-      "kind": "fragment",
-      "title": "Sub-second failure_to_yield blips",
-      "text": "When a car passes, the pedestrian's box flickers onto the roadway part of the zebra. These 0.3 s events can never reach tIoU 0.3 against a real label. A 1 s minimum duration removes them.",
-      "image": null
-    },
-    {
-      "video": "C3902",
-      "label": "red_light",
-      "kind": "missed",
-      "title": "Red-light runners on the far carriageway",
-      "text": "Vehicles on the far side are small and the tracker loses them inside the junction box, so the \"enters the box on red\" condition never completes.",
-      "image": null
-    }
-  ]
+ "failures": [
+  {
+   "video": "C3902", "label": "illegal_u_turn", "start": 39.5, "end": 43.6, "kind": "false positive (fixed)",
+   "title": "A left turn that looked like a U-turn",
+   "text": "The car enters from the bottom edge. While only its roof is visible the box bottom is stuck at the frame border, so the foot point slides sideways and reads as 'heading right'; the later up-left heading then looks like a 160° reversal. Fix: observations clipped by the frame border are ignored when estimating headings, and the rule compares the start and end headings of the whole manoeuvre instead of the largest deviation.",
+   "image": "data/failures/uturn_left_turn.jpg"
+  },
+  {
+   "video": "C3902", "label": "illegal_u_turn", "start": 215.6, "end": 242.9, "kind": "false positive (fixed)",
+   "title": "A bus that turned 360° on paper",
+   "text": "Three articulated buses overlap; the tracked box jumps between them, the foot point oscillates and the unwrapped heading accumulates a full turn. Fix: the net heading change is taken modulo 360°, and tracks with position or box-size jumps are discarded.",
+   "image": "data/failures/uturn_bus_idswitch.jpg"
+  },
+  {
+   "video": "C3902", "label": "failure_to_yield", "start": 93.5, "end": 94.1, "kind": "false positive",
+   "title": "Waiting is not crossing",
+   "text": "Two pedestrians stand at the edge of crosswalk C next to the island while a car passes. They are on the zebra polygon but have not stepped onto the roadway. We already require pedestrians to be 20 px inside the carriageway; telling 'about to step off' from 'waiting' needs their motion, which we do not use yet.",
+   "image": "data/failures/fty_island_edge.jpg"
+  },
+  {
+   "video": "C3902", "label": "failure_to_yield", "start": 202.7, "end": 203.2, "kind": "false positive",
+   "title": "A scooter rider counted as a pedestrian",
+   "text": "Riders are removed when a bicycle or motorcycle box overlaps them, but this electric scooter is not a COCO class, so its rider stays a 'pedestrian' on crosswalk B.",
+   "image": "data/failures/fty_cyclist.jpg"
+  },
+  {
+   "video": "C3902", "label": "jaywalking", "start": 10.4, "end": 14.2, "kind": "borderline (suppressed)",
+   "title": "Cutting the corner onto a zebra",
+   "text": "People step off the corner and join crosswalk C a metre from its end. Strictly they are on the carriageway outside a crossing, but we doubt an annotator would flag it, so jaywalking requires 40 px of distance from every zebra. The price: a few genuine diagonal crossings near zebra C (128-150 s) are missed.",
+   "image": "data/failures/jay_corner_cut.jpg"
+  },
+  {
+   "video": "C3902", "label": "accident", "start": 71.9, "end": 73.0, "kind": "Part B false alarm (fixed)",
+   "title": "Dense green-phase traffic raised the risk alarm",
+   "text": "The first Part B version downscaled frames differently from Part A, so its detections were noisier than the ones we calibrated on, and three alarms fired on ordinary traffic. Part B now uses exactly Part A's preprocessing and its calibration was checked on its own run: no frame of the sample reaches 0.5.",
+   "image": "data/failures/risk_false_alarm.jpg"
+  },
+  {
+   "video": "C3902", "label": "stopped_vehicle", "start": 0.0, "end": 317.8, "kind": "open question",
+   "title": "Parked on the carriageway all clip long",
+   "text": "A taxi at the bus stop and a delivery van at the far curb never move. By the class definition (stationary ≥ 10 s on the carriageway, not queued at a signal) this is a stopped vehicle, so we report it; an annotator may see it as parking. Queues at both signals are excluded by queue zones.",
+   "image": null
+  }
+ ]
 }
