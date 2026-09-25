@@ -5,8 +5,8 @@
 Runs app/server.py unchanged. Modal's free tier needs a payment method for GPUs, so
 the demo runs on CPU cores with lighter detector settings (see ENV); set GPU = "T4"
 and drop them to run the exact submitted settings. One container serves all
-requests (the job queue lives in its memory) and stays warm for 15 minutes after
-the last request; the first request after that waits about a minute while the
+requests (the job queue lives in its memory) and stays warm for 2 minutes after
+the last request (pay per use); the first request after that waits about a minute while the
 container starts and loads the model. The printed URL goes into
 website/data/config.json as `api_base`.
 """
@@ -40,7 +40,7 @@ image = (
 app = modal.App("roadsense-demo", image=image)
 
 
-@app.function(gpu=GPU, cpu=CPUS, memory=8192, max_containers=1, scaledown_window=15 * 60, timeout=60 * 60)
+@app.function(gpu=GPU, cpu=CPUS, memory=8192, max_containers=1, scaledown_window=120, timeout=60 * 60)
 @modal.concurrent(max_inputs=64)
 @modal.asgi_app()
 def web():

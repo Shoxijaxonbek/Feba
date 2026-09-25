@@ -48,17 +48,6 @@ class OfflineError extends Error {}
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-/** GET /api/health -> {ok, queue, ...} from the demo server; null on static hosting (404) or network errors. */
-async function probeBackend() {
-  try {
-    const res = await fetch(`${API}/health`, { cache: 'no-store' });
-    const body = res.ok ? await res.json() : null;
-    return body?.ok ? body : null;
-  } catch {
-    return null;
-  }
-}
-
 function upload(file, onProgress) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -114,7 +103,6 @@ export async function initDemo() {
   let file = null;
   let view = null;
   let busy = false;
-  let online = null; // /api/health response, once probed
 
   fill(root,
     h('div', { class: 'demo-grid' },
@@ -125,7 +113,7 @@ export async function initDemo() {
         h('ul', { class: 'tick-list' },
           h('li', {}, `.mp4 video, at most ${MAX_SEC / 60} minutes and ${MAX_MB} MB.`),
           h('li', {}, 'Footage from the same junction camera works best: the scene layout and lane directions are specific to that view.'),
-          h('li', {}, 'The demo runs on cloud CPU cores (Modal), so a 2-minute clip takes about 4–5 minutes. If nobody used it in the last 15 minutes, the first upload also waits a few seconds while the server wakes up. Keep this tab open to watch the progress.')))),
+          h('li', {}, 'The demo runs on cloud CPU cores (Modal), so a 2-minute clip takes about 4–5 minutes. If nobody used it in the last 2 minutes, the first upload also waits about 10 s while the server wakes up. Keep this tab open to watch the progress.')))),
     resultBox);
 
   const setBusy = (b) => {
@@ -214,8 +202,7 @@ export async function initDemo() {
       });
     } catch (err) {
       progress.hidden = true;
-      if (err instanceof OfflineError && !online) offlineNotice();
-      else if (err instanceof OfflineError) say('error', h('strong', {}, 'Could not reach the demo server. '), 'Check your connection and try again.');
+      if (err instanceof OfflineError) offlineNotice();
       else say('error', h('strong', {}, 'Something went wrong. '), err.message || String(err));
     } finally {
       setBusy(false);
@@ -246,10 +233,9 @@ export async function initDemo() {
     if (!busy) choose(e.dataTransfer.files[0]);
   });
 
+  // The server is not contacted on page load: it runs on pay-per-use cloud cores that
+  // start on the first upload, so merely viewing the page must not wake it.
   await loadApiBase();
-  online = await probeBackend();
-  const queued = Number.isFinite(online?.queue) && online.queue > 0 ? ` ${online.queue} job(s) ahead of you.` : '';
-  fill(status, h('span', { class: `dot ${online ? 'dot--ok' : 'dot--off'}`, 'aria-hidden': 'true' }),
-    online ? `Demo server online.${queued}` : 'Demo server offline on this copy of the site.');
-  if (!online) offlineNotice();
+  fill(status, h('span', { class: 'dot dot--ok', 'aria-hidden': 'true' }),
+    'Demo server on standby: it starts when you upload a clip (the first upload waits about 10 s).');
 }

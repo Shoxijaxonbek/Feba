@@ -4,8 +4,8 @@ RoadSense turns the fixed 4K view of a signalised Tashkent junction into a list 
 events `[start_sec, end_sec, label]` (Part A) and a causal, frame-by-frame accident-risk score
 (Part B). It is a little learning and a lot of explicit geometry:
 
-1. **Decode only what we use.** The camera writes H.264 High 4:2:2 10-bit at ~150 Mbit/s. PyAV skips
-   non-reference frames: the I-B-B-P GOP yields every third frame (~10 fps) at ~5× realtime.
+1. **Decode only what we use.** The camera writes H.264 High 4:2:2 10-bit at about 150 Mbit/s. PyAV skips
+   non-reference frames: the I-B-B-P GOP yields every third frame (about 10 fps) at about 5× realtime.
 2. **Detect and track.** YOLO11m (COCO weights, not fine-tuned) with pre- and post-processing on the
    GPU; ByteTrack separately for vehicles, two-wheelers, pedestrians and possible obstacles.
 3. **Know the scene.** Carriageway, islands, three zebras, the stop line, queue zones, the junction box
@@ -15,7 +15,7 @@ events `[start_sec, end_sec, label]` (Part A) and a causal, frame-by-frame accid
    video, then read frame by frame. That works in harsh midday sun and at dusk.
 5. **One rule per class**, written from the annotation conventions (start and end of each class).
 6. **Part B**: causal tracking at 5 fps, the time until two ground footprints would touch, the
-   deceleration needed to avoid it, a conflict that must hold for ~0.6 s, and a calibration that keeps
+   deceleration needed to avoid it, a conflict that must hold for about 0.6 s, and a calibration that keeps
    normal traffic below the alarm level.
 
 ## What worked
