@@ -17,7 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from roadwatch.perception import Observation  # noqa: E402
 from roadwatch.video import SCENE_H, SCENE_W  # noqa: E402
 
-GROUP_COLOURS = {"vehicle": (0, 220, 255), "person": (255, 0, 255), "two_wheeler": (0, 128, 255)}
+GROUP_COLOURS = {"vehicle": (0, 220, 255), "person": (255, 0, 255), "two_wheeler": (0, 128, 255), "obstacle": (60, 255, 60)}
 
 
 def grab(video: str, times: list[float]) -> dict[float, np.ndarray]:

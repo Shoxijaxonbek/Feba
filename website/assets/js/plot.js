@@ -6,7 +6,7 @@ const PLOTLY_URL = 'https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotl
 let loading = null;
 const charts = new Map(); // element -> build function
 
-export function loadPlotly() {
+function loadPlotly() {
   if (window.Plotly) return Promise.resolve(window.Plotly);
   loading ??= new Promise((resolve, reject) => {
     const tag = document.createElement('script');
@@ -20,7 +20,7 @@ export function loadPlotly() {
 }
 
 /** Current theme colours, read from the CSS tokens. */
-export function tokens() {
+function tokens() {
   const cs = getComputedStyle(document.documentElement);
   const v = (name) => cs.getPropertyValue(name).trim();
   return {
@@ -51,7 +51,7 @@ export function layout(t, extra = {}) {
     paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
     margin: { l: 48, r: 12, t: 12, b: 40 },
     xaxis: axis, yaxis: axis,
-    legend: { orientation: 'h', x: 0, y: 1.02, yanchor: 'bottom', font: { color: t.text2, size: 12 }, bgcolor: 'rgba(0,0,0,0)' },
+    legend: { orientation: 'h', x: 0, y: 1.02, yanchor: 'bottom', traceorder: 'normal', font: { color: t.text2, size: 12 }, bgcolor: 'rgba(0,0,0,0)' },
     hoverlabel: { bgcolor: t.surface, bordercolor: t.border, font: { color: t.text, family: t.font, size: 12 } },
     showlegend: false,
   };
@@ -92,6 +92,19 @@ export function plotLazy(el, build, onReady) {
       plot(el, b, r);
     });
   }
+}
+
+/** Re-render with the latest build when key() changes on resize (e.g. a breakpoint changed a margin). */
+export function replotOnResize(el, key) {
+  let last = key();
+  const onResize = () => {
+    const k = key();
+    if (k === last || !charts.has(el)) return;
+    last = k;
+    plot(el, charts.get(el));
+  };
+  addEventListener('resize', onResize);
+  return () => removeEventListener('resize', onResize);
 }
 
 export function rethemeAll() {

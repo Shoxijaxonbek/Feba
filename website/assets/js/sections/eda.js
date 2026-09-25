@@ -1,8 +1,8 @@
 // Exploratory data analysis from data/eda/eda.json.
 import { h, fill, fmtNum, fmtTime, fmtDuration, figureImg, segmented } from '../util.js';
 import { objectClasses, signalInfo, theme } from '../classes.js';
-import { plotLazy, layout, alpha } from '../plot.js';
-import { createTimeline } from '../timeline.js';
+import { plotLazy, layout, alpha, replotOnResize } from '../plot.js';
+import { createTimeline, timeTicks, labelWidth } from '../timeline.js';
 import { loadEda } from '../store.js';
 
 // Categorical slots for per-video series (same validated order as the object classes).
@@ -93,7 +93,8 @@ function redShapes(sig, duration, t) {
       fillcolor: alpha(t.critical, 0.09), line: { width: 0 } }));
 }
 
-function queueBuild(q, sig, duration) {
+/** inset(): left margin that lines the plot up with the signal strip below it (null = default). */
+function queueBuild(q, sig, duration, inset) {
   return (t) => ({
     data: [
       { x: q.t, y: q.vehicles, name: 'vehicles in queue zone', type: 'scatter', mode: 'lines', line: { color: seriesColor(0), width: 2 },
@@ -102,7 +103,9 @@ function queueBuild(q, sig, duration) {
         hovertemplate: 'stationary: %{y}<extra></extra>' },
     ],
     layout: layout(t, { showlegend: true, hovermode: 'x unified', shapes: redShapes(sig, duration, t),
-      xaxis: { title: { text: 'time (s) · shaded: main signal red' } }, yaxis: { title: { text: 'vehicles' }, rangemode: 'tozero' } }),
+      margin: inset() ? { l: inset(), r: 0, b: 28 } : {},
+      xaxis: { range: [0, duration], ...timeTicks(duration), automargin: !inset() },
+      yaxis: { title: { text: 'vehicles' }, rangemode: 'tozero', automargin: !inset() } }),
   });
 }
 
@@ -146,8 +149,9 @@ export async function initEda() {
   const queueEl = h('div', { class: 'chart', role: 'img', 'aria-label': 'Queue length over time with red signal phases shaded' });
   const sigBox = h('div', { class: 'sig-strip' });
   const countsCard = card('Objects in view', 'Detections per second by COCO class (1 Hz).', countsEl);
-  const queueCard = card('Queue vs signal', 'Vehicles in the approach queue zone. The queue builds on red and clears after green, so congestion only counts queues during green.', queueEl);
-  const sigCard = card('Signal timeline', 'Main signal state over the whole video.', sigBox);
+  const queueCard = card('Queue vs signal', 'Vehicles in the approach queue zone, with the main signal underneath (red phases shaded). The queue builds on red and clears after green, so congestion only counts queues during green.', queueEl, sigBox);
+  let strip = null;
+  const inset = () => (strip?.el.isConnected ? labelWidth(strip.el) : null);
 
   function showVideo(id) {
     const duration = durations[id] || eda.counts_over_time?.[id]?.t?.at(-1) || eda.queue?.[id]?.t?.at(-1) || 1;
@@ -156,10 +160,11 @@ export async function initEda() {
     const sig = eda.signal_cycle?.timeline?.[id];
     countsCard.hidden = !series?.t?.length;
     if (series?.t?.length) plotLazy(countsEl, countsBuild(series));
-    queueCard.hidden = !q?.t?.length;
-    if (q?.t?.length) plotLazy(queueEl, queueBuild(q, sig, duration));
-    sigCard.hidden = !sig?.length;
-    if (sig?.length) fill(sigBox, createTimeline({ duration, rows: [], signal: sig, ariaLabel: `Signal timeline of ${id}` }).el);
+    strip = sig?.length ? createTimeline({ duration, rows: [], signal: sig, ariaLabel: `Main signal timeline of ${id}` }) : null;
+    fill(sigBox, strip?.el);
+    queueEl.hidden = !q?.t?.length;
+    queueCard.hidden = !q?.t?.length && !strip;
+    if (q?.t?.length) plotLazy(queueEl, queueBuild(q, sig, duration, inset));
   }
 
   const picker = ids.length > 1
@@ -173,7 +178,7 @@ export async function initEda() {
   fill(body,
     videos.length ? card('The footage', `${videos.length} videos, ${fmtDuration(videos.reduce((n, v) => n + (Number(v.duration) || 0), 0))} in total. Fixed camera, same view in every video.`, metaTable(videos)) : null,
     h('div', { class: 'grid-2' }, brightnessChart(videos), speedChart(eda.speeds)),
-    ids.length ? h('div', { class: 'stack' }, h('h3', { class: 'sub-head' }, 'Per video'), picker, countsCard, h('div', { class: 'grid-2' }, queueCard, sigCard)) : null,
+    ids.length ? h('div', { class: 'stack' }, h('h3', { class: 'sub-head' }, 'Per video'), picker, countsCard, queueCard) : null,
     cycleCard(eda.signal_cycle),
     h('h3', { class: 'sub-head' }, 'What the camera sees'),
     h('div', { class: 'img-grid' }, IMAGES.filter(([key]) => key in images).map(([key, title, caption]) =>
@@ -184,4 +189,5 @@ export async function initEda() {
       h('h4', {}, f.title || ''), f.text ? h('p', {}, f.text) : null))) : null,
   );
   if (ids.length) showVideo(ids[0]);
+  replotOnResize(queueEl, () => inset());
 }

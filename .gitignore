@@ -10,3 +10,4 @@ website/node_modules/
 website/dist/
 app/jobs/
 weights/yolo11l.pt
+deploy/space_build/

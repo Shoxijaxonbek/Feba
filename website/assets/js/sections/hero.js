@@ -16,7 +16,7 @@ export async function runtimeRows() {
   if (Array.isArray(metrics?.timing) && metrics.timing.length) return metrics.timing;
   return all.filter((x) => x.result.timing).map(({ entry, result }) => ({
     video: entry.id, duration: result.timing.video_sec ?? result.duration ?? entry.duration,
-    part_a_sec: result.timing.part_a_sec, part_b_sec: result.timing.part_b_sec,
+    part_a_sec: result.timing.part_a_sec, part_b_sec: result.timing.part_b_sec, budget_sec: result.timing.budget_sec,
   }));
 }
 

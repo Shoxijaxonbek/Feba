@@ -1,9 +1,9 @@
 """Multi-object tracking (ByteTrack) and the trajectory container used by the rules.
 
-Road users are tracked in three independent groups so that a pedestrian can
-never inherit the id of a car (or of the bicycle she is riding):
-vehicles (car/bus/truck, which the detector often confuses with each other),
-two-wheelers, and persons.
+Road users are tracked in independent groups so that a pedestrian can never
+inherit the id of a car (or of the bicycle she is riding): vehicles
+(car/bus/truck, which the detector often confuses with each other),
+two-wheelers, persons, and possible obstacles (animals, loose objects).
 """
 from __future__ import annotations
 
@@ -12,12 +12,13 @@ from types import SimpleNamespace
 
 import numpy as np
 
-from .detector import NAMES, NAME_ID, TWO_WHEELERS, VEHICLES
+from .detector import NAMES, NAME_ID, OBSTACLES, TWO_WHEELERS, VEHICLES
 
 GROUPS = {
     "vehicle": [NAME_ID[n] for n in VEHICLES],
     "two_wheeler": [NAME_ID[n] for n in TWO_WHEELERS],
     "person": [NAME_ID["person"]],
+    "obstacle": [NAME_ID[n] for n in OBSTACLES],
 }
 
 TRACKER_ARGS = dict(track_high_thresh=0.35, track_low_thresh=0.1, new_track_thresh=0.4,

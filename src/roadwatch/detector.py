@@ -10,12 +10,15 @@ from pathlib import Path
 
 import numpy as np
 
-# COCO ids -> our coarse classes
-COCO_TO_NAME = {0: "person", 1: "bicycle", 2: "car", 3: "motorcycle", 5: "bus", 7: "truck"}
-NAMES = ["person", "bicycle", "car", "motorcycle", "bus", "truck"]
+# COCO ids -> our coarse classes (road users, plus animals and loose objects for road_obstacle)
+COCO_TO_NAME = {0: "person", 1: "bicycle", 2: "car", 3: "motorcycle", 5: "bus", 7: "truck",
+                15: "animal", 16: "animal", 17: "animal", 18: "animal", 19: "animal",
+                24: "object", 26: "object", 28: "object"}
+NAMES = ["person", "bicycle", "car", "motorcycle", "bus", "truck", "animal", "object"]
 NAME_ID = {n: i for i, n in enumerate(NAMES)}
 VEHICLES = ("car", "bus", "truck")
 TWO_WHEELERS = ("bicycle", "motorcycle")
+OBSTACLES = ("animal", "object")
 
 WEIGHTS_DIR = Path(__file__).resolve().parents[2] / "weights"
 

@@ -258,18 +258,18 @@
 
         <h3 class="sub-head">Learned or rule-based?</h3>
         <div class="table-scroll">
-          <table class="data-table">
+          <table class="data-table data-table--stack">
             <thead><tr><th scope="col">Component</th><th scope="col">Kind</th><th scope="col">What it uses</th><th scope="col">Why</th></tr></thead>
             <tbody>
-              <tr><th scope="row">Detector weights</th><td><span class="tag tag--learned">learned</span></td><td>YOLO11m, COCO pre-training, no fine-tuning</td><td>Reliable boxes for people and vehicles out of the box</td></tr>
-              <tr><th scope="row">Lane-direction field</th><td><span class="tag tag--learned">learned</span></td><td>Median heading per grid cell from sample-video trajectories</td><td>wrong_way needs to know the legal direction; no labels needed</td></tr>
-              <tr><th scope="row">Risk calibration</th><td><span class="tag tag--learned">learned</span></td><td>Logistic fit from required deceleration to probability</td><td>Keeps normal traffic below 0.5</td></tr>
-              <tr><th scope="row">Tracking</th><td><span class="tag">algorithm</span></td><td>ByteTrack (Kalman filter + IoU matching)</td><td>Stable identities through short occlusions</td></tr>
-              <tr><th scope="row">Signal state</th><td><span class="tag">rule-based</span></td><td>Lamp colours in fixed image boxes</td><td>The signal head never moves; colour thresholds are exact and explainable</td></tr>
-              <tr><th scope="row">Scene layout</th><td><span class="tag">hand-annotated</span></td><td>Carriageway, islands, crosswalks, stop line, queue zone, junction box, bus stop</td><td>One fixed camera: half an hour of drawing beats a learned segmentation</td></tr>
-              <tr><th scope="row">Event rules</th><td><span class="tag">rule-based</span></td><td>Tracks + layout + signal state, one rule per class</td><td>Each event has a legal definition; rules can be audited and tuned without many labels</td></tr>
-              <tr><th scope="row">Segment post-processing</th><td><span class="tag">rule-based</span></td><td>Merge gaps, trim, minimum length</td><td>Temporal IoU rewards tight, unfragmented segments</td></tr>
-              <tr><th scope="row">Conflict measure</th><td><span class="tag">physics</span></td><td>Footprint time-to-contact → DRAC-style required deceleration</td><td>Causal and interpretable</td></tr>
+              <tr><th scope="row">Detector weights</th><td data-label="Kind"><span class="tag tag--learned">learned</span></td><td data-label="What it uses">YOLO11m, COCO pre-training, no fine-tuning</td><td data-label="Why">Reliable boxes for people and vehicles out of the box</td></tr>
+              <tr><th scope="row">Lane-direction field</th><td data-label="Kind"><span class="tag tag--learned">learned</span></td><td data-label="What it uses">Median heading per grid cell from sample-video trajectories</td><td data-label="Why">wrong_way needs to know the legal direction; no labels needed</td></tr>
+              <tr><th scope="row">Risk calibration</th><td data-label="Kind"><span class="tag tag--learned">learned</span></td><td data-label="What it uses">Logistic fit from required deceleration to probability</td><td data-label="Why">Keeps normal traffic below 0.5</td></tr>
+              <tr><th scope="row">Tracking</th><td data-label="Kind"><span class="tag">algorithm</span></td><td data-label="What it uses">ByteTrack (Kalman filter + IoU matching)</td><td data-label="Why">Stable identities through short occlusions</td></tr>
+              <tr><th scope="row">Signal state</th><td data-label="Kind"><span class="tag">rule-based</span></td><td data-label="What it uses">Lamp colours in fixed image boxes</td><td data-label="Why">The signal head never moves; colour thresholds are exact and explainable</td></tr>
+              <tr><th scope="row">Scene layout</th><td data-label="Kind"><span class="tag">hand-annotated</span></td><td data-label="What it uses">Carriageway, islands, crosswalks, stop line, queue zone, junction box, bus stop</td><td data-label="Why">One fixed camera: half an hour of drawing beats a learned segmentation</td></tr>
+              <tr><th scope="row">Event rules</th><td data-label="Kind"><span class="tag">rule-based</span></td><td data-label="What it uses">Tracks + layout + signal state, one rule per class</td><td data-label="Why">Each event has a legal definition; rules can be audited and tuned without many labels</td></tr>
+              <tr><th scope="row">Segment post-processing</th><td data-label="Kind"><span class="tag">rule-based</span></td><td data-label="What it uses">Merge gaps, trim, minimum length</td><td data-label="Why">Temporal IoU rewards tight, unfragmented segments</td></tr>
+              <tr><th scope="row">Conflict measure</th><td data-label="Kind"><span class="tag">physics</span></td><td data-label="What it uses">Footprint time-to-contact → DRAC-style required deceleration</td><td data-label="Why">Causal and interpretable</td></tr>
             </tbody>
           </table>
         </div>

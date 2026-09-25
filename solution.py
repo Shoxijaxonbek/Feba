@@ -17,6 +17,7 @@ The implementation lives in src/roadwatch/:
 from __future__ import annotations
 
 import sys
+import time
 from pathlib import Path
 
 import numpy as np
@@ -34,11 +35,19 @@ CLASSES: list[str] = [
 ]
 
 RISK_HORIZON_SEC = 5.0
+TIME_FACTOR = 3.0      # harness budget: Part A + Part B <= 3x the video duration
+SAFETY = 0.85          # ...of which we plan to use at most this share
+
+_part_a_seconds: dict[str, float] = {}   # wall time Part A took, per video file name
 
 
 def detect_events(video_path: str) -> list[list]:
     """Part A — [[start_sec, end_sec, label], ...] for one video."""
-    return pipeline.detect_events(video_path)
+    t0 = time.perf_counter()
+    try:
+        return pipeline.detect_events(video_path)
+    finally:
+        _part_a_seconds[Path(video_path).name] = time.perf_counter() - t0
 
 
 class RiskEstimator:
@@ -48,7 +57,11 @@ class RiskEstimator:
         self._risk = CausalRisk(pipeline.get_detector(), pipeline.get_scene())
 
     def reset(self, meta: dict) -> None:
-        self._risk.reset(meta)
+        # what is left of the time budget after Part A, so Part B can thin itself out if needed
+        duration = (meta.get("n_frames") or 0) / float(meta.get("fps") or 25.0)
+        spent = _part_a_seconds.get(meta.get("video_id", ""), 0.0)
+        budget = SAFETY * TIME_FACTOR * duration - spent if duration else None
+        self._risk.reset(meta, budget_s=budget)
 
     def step(self, frame: np.ndarray, t_sec: float) -> float:
         return self._risk.step(frame, t_sec)

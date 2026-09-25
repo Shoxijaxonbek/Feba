@@ -23,6 +23,7 @@ class Context:
     vehicles: dict[int, Track]
     pedestrians: dict[int, Track]
     two_wheelers: dict[int, Track]
+    obstacles: dict[int, Track]
     signal: dict[str, tuple[np.ndarray, np.ndarray]] = field(default_factory=dict)
     risk: dict | None = None   # causal conflict score replayed on the detections (risk.replay_detections)
 
@@ -113,9 +114,9 @@ def build_context(obs: Observation, scene: Scene) -> Context:
     through windows (buses are full of them); persons sharing their box with a
     bicycle or motorcycle are riders. Both are dropped from the pedestrian set.
     """
-    groups: dict[str, dict[int, Track]] = {"vehicle": {}, "person": {}, "two_wheeler": {}}
+    groups: dict[str, dict[int, Track]] = {"vehicle": {}, "person": {}, "two_wheeler": {}, "obstacle": {}}
     for tid, tr in obs.tracks.items():
-        groups[tr.group][tid] = tr
+        groups.setdefault(tr.group, {})[tid] = tr
     times = obs.times
     veh_boxes = _frame_boxes(groups["vehicle"], times)
     two_boxes = _frame_boxes(groups["two_wheeler"], times)
@@ -144,7 +145,8 @@ def build_context(obs: Observation, scene: Scene) -> Context:
         for name in scene.signals:
             signal[name] = signal_states(reading, name)
     risk = replay_detections(obs.times, obs.detections, scene) if len(obs.times) > 2 else None
-    return Context(obs, scene, groups["vehicle"], pedestrians, groups["two_wheeler"], signal, risk)
+    return Context(obs, scene, groups["vehicle"], pedestrians, groups["two_wheeler"], groups["obstacle"],
+                   signal, risk)
 
 
 def runs(t: np.ndarray, mask: np.ndarray, max_gap: float = 0.5) -> list[tuple[float, float]]:

@@ -3,8 +3,8 @@
 // event table, per-class example gallery and failure cases. Everything seeks the same clock.
 import { h, fill, fmtTime, placeholder, whenVisible, stepAt, sampleAt, clamp, ICON } from './util.js';
 import { classInfo, classVar, classColor, classOrder, signalInfo, objectClasses } from './classes.js';
-import { createTimeline, tickStep } from './timeline.js';
-import { plot, layout, alpha, purge } from './plot.js';
+import { createTimeline, timeTicks, labelWidth } from './timeline.js';
+import { plot, layout, alpha, purge, replotOnResize } from './plot.js';
 import { normaliseResult } from './store.js';
 
 const ALARM = 0.5;
@@ -16,7 +16,7 @@ export function chip(label, extra) {
 }
 
 /** {"crosswalk": "B", "approach": "main"} -> "crosswalk B · approach: main" */
-export function describeInfo(info) {
+function describeInfo(info) {
   if (!info || typeof info !== 'object') return '';
   return Object.entries(info)
     .filter(([, v]) => v != null && v !== '')
@@ -105,7 +105,7 @@ export function mountResult(container, raw, opts = {}) {
     let countText = '';
     if (counts) {
       const i = clamp(Math.round(t), 0, counts.t.length - 1);
-      countText = countKeys.map((o) => [counts[o.id][i], o.name.toLowerCase()]).filter(([n]) => n > 0).map(([n, label]) => `${n} ${label}`).join(' · ');
+      countText = countKeys.map((o) => [Math.round(counts[o.id][i]), o.name.toLowerCase()]).filter(([n]) => n > 0).map(([n, label]) => `${n} ${label}`).join(' · ');
     }
     const key = [t.toFixed(1), sig?.id, risk?.toFixed(2), active.map((e) => e.idx).join(','), countText].join('|');
     if (key === st.nowKey) return;
@@ -140,14 +140,8 @@ export function mountResult(container, raw, opts = {}) {
   const riskHead = h('div', { class: 'chart-playhead', hidden: true, 'aria-hidden': 'true' });
   const riskWrap = h('div', { class: 'chart-wrap' }, riskEl, riskHead);
   let riskReady = false;
-  const labelWidth = () => parseFloat(getComputedStyle(timeline.el).getPropertyValue('--tl-label')) || 120;
-  let lastLabelW = 0;
 
   const riskBuild = (t) => {
-    lastLabelW = labelWidth();
-    const step = tickStep(D);
-    const tickvals = [];
-    for (let x = 0; x <= D + 1e-6; x += step) tickvals.push(x);
     const shapes = [{ type: 'line', xref: 'paper', x0: 0, x1: 1, y0: ALARM, y1: ALARM, line: { color: t.critical, width: 1.5, dash: 'dash' } }];
     for (const e of r.events) {
       if (e.label === 'accident' || e.label === 'near_miss') {
@@ -160,8 +154,8 @@ export function mountResult(container, raw, opts = {}) {
         line: { color: t.accent, width: 2 }, fill: 'tozeroy', fillcolor: alpha(t.accent, 0.1),
         hovertemplate: '%{x:.1f} s · risk %{y:.2f}<extra></extra>' }],
       layout: layout(t, {
-        margin: { l: lastLabelW, r: 0, t: 8, b: 28 }, hovermode: 'x', shapes,
-        xaxis: { range: [0, D], tickvals, ticktext: tickvals.map((x) => fmtTime(x, false)), automargin: false, showspikes: false },
+        margin: { l: labelWidth(timeline.el), r: 0, t: 8, b: 28 }, hovermode: 'x', shapes,
+        xaxis: { range: [0, D], ...timeTicks(D), automargin: false },
         yaxis: { range: [0, 1.02], tickvals: [0, 0.25, 0.5, 0.75, 1], automargin: false, fixedrange: true },
         annotations: [{ xref: 'paper', x: 1, y: ALARM, yanchor: 'bottom', xanchor: 'right', showarrow: false,
           text: 'alarm 0.5', font: { color: t.text2, size: 11 } }],
@@ -185,9 +179,6 @@ export function mountResult(container, raw, opts = {}) {
       el.on('plotly_afterplot', () => placeRiskHead(st.t));
       placeRiskHead(st.t);
     }));
-    const onResize = () => { if (riskReady && labelWidth() !== lastLabelW) plot(riskEl, riskBuild); };
-    addEventListener('resize', onResize);
-    cleanups.push(() => removeEventListener('resize', onResize));
   }
 
   // ---- table ----
@@ -228,6 +219,7 @@ export function mountResult(container, raw, opts = {}) {
       failures.length ? failureBlock(failures, (f) => seek(f.start, { reveal: true })) : null,
     ),
   );
+  if (r.risk.length) cleanups.push(replotOnResize(riskEl, () => labelWidth(timeline.el)));
   update(0);
 
   return {
