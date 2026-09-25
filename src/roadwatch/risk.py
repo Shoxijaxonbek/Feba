@@ -23,6 +23,7 @@ from collections import deque
 import cv2
 import numpy as np
 
+from . import alignment
 from .detector import Detector
 from .scene import Scene
 from .tracking import MultiTracker
@@ -123,6 +124,7 @@ class CausalRisk:
         self.last_raw = 0.0
         self.last_pair: tuple[int, int] | None = None
         self.prev_danger: dict[tuple[int, int], float] = {}
+        self.to_reference: np.ndarray | None = None
 
     def step(self, frame: np.ndarray, t: float) -> float:
         i, self.idx = self.idx, self.idx + 1
@@ -131,8 +133,11 @@ class CausalRisk:
         # downscale on the CPU first: uploading full 4K frames to the GPU cost more than inference
         small = cv2.resize(frame, (DETECT_W, DETECT_W * frame.shape[0] // frame.shape[1]),
                            interpolation=cv2.INTER_LINEAR)
+        if self.to_reference is None:  # register the view once, on the first frame we see
+            self.to_reference = alignment.estimate(cv2.resize(small, (SCENE_W, SCENE_W * 9 // 16)))
         dets = self.detector([small])[0]
         dets[:, :4] *= SCENE_W / DETECT_W
+        dets[:, :4] = alignment.map_boxes(self.to_reference, dets[:, :4])
         return self.update(t, dets)
 
     def update(self, t: float, dets: np.ndarray) -> float:

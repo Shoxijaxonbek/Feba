@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import numpy as np
 
+from .alignment import map_lamp_boxes
+
 RED, AMBER, GREEN, UNKNOWN = "red", "amber", "green", "unknown"
 
 
@@ -35,6 +37,9 @@ class SignalReader:
         self.t: list[float] = []
         self.values: dict[str, dict[str, list[float]]] = {
             name: {lamp: [] for lamp in cfg["lamps"]} for name, cfg in signals.items()}
+
+    def align(self, reference_to_frame: np.ndarray) -> None:
+        self.signals = map_lamp_boxes(reference_to_frame, self.signals)
 
     def observe(self, t: float, frame: np.ndarray) -> None:
         self.t.append(t)
