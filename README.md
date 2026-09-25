@@ -154,7 +154,7 @@ predictions_samples.json  our output on the sample videos
 
 | member | role | contributions |
 |---|---|---|
-| Shuxratov Shoxijaxonbek | team captain, computer vision | decoding, detection and tracking; scene layout, signal reader and event rules; dev labels, evaluation, Part B risk model |
+| Shuxratov Shoxijaxonbek | team captain, project manager | decoding, detection and tracking; scene layout, signal reader and event rules; dev labels, evaluation, Part B risk model |
 | Ibragimov Diyorbek | frontend developer | the website: results viewer with clickable timelines and risk curves, EDA charts, operator dashboard |
 | Lutfullayev Mirfayz | backend developer | live-demo API (uploads, job queue, progress), annotated rendering, Hugging Face deployment |
 
