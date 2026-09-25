@@ -52,6 +52,6 @@
     "space": "https://huggingface.co/spaces/Shoxijaxonbek/Feba",
     "weights": "https://github.com/Shoxijaxonbek/Feba/tree/main/weights",
     "predictions": "data/predictions_samples.json",
-    "report_pdf": null
+    "report_pdf": "data/report.pdf"
   }
 }
