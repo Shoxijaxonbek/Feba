@@ -4,8 +4,8 @@ WIUT Hackathon 2026, Computer Vision track. Given a video from the fixed camera,
 system reports every traffic event as `[start_sec, end_sec, label]` (Part A) and a causal
 per-frame accident-risk score (Part B).
 
-- Website (team, approach, EDA, results, live demo, report): **TODO: link**
-- Repository tag evaluated: **TODO: tag**
+- Website (team, approach, EDA, results, live demo, report): https://huggingface.co/spaces/Shoxijaxonbek/Feba
+- Repository: https://github.com/Shoxijaxonbek/Feba (the evaluated commit is tagged `submission`)
 
 ## Run it
 
@@ -134,9 +134,13 @@ labels/                   our dev labels of the sample videos
 predictions_samples.json  our output on the sample videos
 ```
 
-## Team
+## Team Feba
 
-**TODO** — members, roles and who did what.
+| member | role | contributions |
+|---|---|---|
+| Shuxratov Shoxijaxonbek | team captain, computer vision | decoding, detection and tracking; scene layout, signal reader and event rules; dev labels, evaluation, Part B risk model |
+| Ibragimov Diyorbek | frontend developer | the website: results viewer with clickable timelines and risk curves, EDA charts, operator dashboard |
+| Lutfullayev Mirfayz | backend developer | live-demo API (uploads, job queue, progress), annotated rendering, Hugging Face deployment |
 
 ## Acknowledgements
 
