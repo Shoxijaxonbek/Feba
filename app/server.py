@@ -24,7 +24,7 @@ from pathlib import Path
 
 import numpy as np
 from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -39,6 +39,7 @@ JOBS_DIR = Path(__file__).resolve().parent / "jobs"
 MAX_BYTES = 100 * 1024 * 1024   # Cloudflare's per-request limit on the tunnel
 MAX_SECONDS = 120.0
 JOB_TTL_S = 3 * 3600
+PUBLIC_SITE = "https://shoxijaxonbek-feba.static.hf.space"
 
 
 @dataclass
@@ -177,5 +178,9 @@ def health() -> dict:
     return {"ok": True, "queue": work.qsize(), "weights": pipeline.DETECTOR_WEIGHTS, "fps": pipeline.PART_A_FPS}
 
 
-if (ROOT / "website").is_dir():  # local use; the public site is a static Space
+if (ROOT / "website").is_dir():  # local use
     app.mount("/", StaticFiles(directory=ROOT / "website", html=True), name="site")
+else:  # API-only host: send visitors of the bare address to the public website
+    @app.get("/", include_in_schema=False)
+    def to_website() -> RedirectResponse:
+        return RedirectResponse(PUBLIC_SITE)
