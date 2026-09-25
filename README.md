@@ -50,14 +50,19 @@ between a cyclist and her bicycle. Persons inside vehicle boxes (bus passengers)
 are removed from the pedestrian set ([detector.py](src/roadwatch/detector.py),
 [tracking.py](src/roadwatch/tracking.py), [rules/common.py](src/roadwatch/rules/common.py)).
 
-**Scene knowledge.** The camera never moves, so the layout is annotated once in
+**Scene knowledge.** The layout is annotated once on a reference view,
 [configs/scene.json](configs/scene.json) (scene pixels of a 1920x1080 frame): carriageway,
-islands and median, crosswalks A/B/C, the stop line with its stop zone, the signal-queue zone,
-the junction box, the bus stop, and small boxes around the red/amber/green lamps of the two
-visible signal heads. `python scripts/draw_scene.py <video> --out overlay.jpg` draws it.
-The vehicle signal is read from lamp glow (colour-specific, per-video two-level threshold,
-median filter, short gaps such as flashing green or a passing bus bridged)
-([signals.py](src/roadwatch/signals.py)). Lane directions are *learned* from the sample
+islands and median, crosswalks A/B/C, the stop line with its stop zone, signal-queue zones,
+the junction box, the bus stop, and the lamps of the two visible signal heads.
+`python scripts/draw_scene.py <video> --out overlay.jpg` draws it. The tripod moved by up to
+80 px between the sample recordings, so every video is first registered to the reference view
+([configs/reference.jpg](configs/reference.jpg)) with SIFT features on contrast-normalised
+frames and a RANSAC similarity transform; tracks live in reference coordinates
+([alignment.py](src/roadwatch/alignment.py)). The vehicle signal is read from lamp glow: each
+lamp is located near its registered position as the spot whose colour changes most over the
+video (it switches on and off), then its glow is thresholded per video, median-filtered, and
+short gaps (flashing green, a passing bus) bridged ([signals.py](src/roadwatch/signals.py)).
+The cycle length differs by time of day (80 s at dusk, 75 s at midday) and is never assumed. Lane directions are *learned* from the sample
 videos' trajectories: mean direction and coherence per 40 px cell
 ([flow.py](src/roadwatch/flow.py), [configs/flow_field.npz](configs/flow_field.npz)).
 
@@ -66,18 +71,20 @@ task define start and end:
 
 | class | rule |
 |---|---|
-| jaywalking | pedestrian foot point on the carriageway (≥ 18 px inside the curb, off islands), ≥ 25 px from every crosswalk, ≥ 1.5 s |
+| jaywalking | pedestrian on the carriageway (≥ 25 px inside the curb, off islands and the bus stop), ≥ 40 px from every crosswalk, ≥ 2 s; the segment covers the whole time on the road outside a crossing |
 | failure_to_yield | moving vehicle's ground edge inside a crosswalk while a pedestrian is on the roadway part of the same crosswalk within 1.5 vehicle widths; event = the vehicle's passage through the crossing |
 | red_light | vehicle crosses the stop-line segment while the signal has been red ≥ 1 s and enters the junction box still on red; ends when it leaves the box |
-| stop_line | vehicle stationary ≥ 2 s inside the stop zone (past the line, before the junction) on red; ends at the next green |
-| stopped_vehicle | vehicle stationary ≥ 10 s on the carriageway outside the signal queue and the bus stop; fragmented tracks at the same spot are joined |
-| wrong_way | moving against the learned lane direction (coherent cells only) for ≥ 1.5 s and ≥ 80 px |
-| illegal_u_turn | continuous track (no id switch) whose heading turns ≥ 150° over ≥ 1.5 s (the median island carries a keep-right sign) |
+| stop_line | vehicle stationary ≥ 2 s on red inside the stop zone with its front more than 0.6 of its length past the line; ends at the next green or when it drives off |
+| stopped_vehicle | vehicle stationary ≥ 10 s on a carriageway while the traffic around it keeps moving (a queue or jam stands still together); junction box, queue/stop zones and buses at the bus stop excluded; fragmented tracks at one spot joined |
+| wrong_way | moving against the learned lane direction for ≥ 1.5 s and ≥ 80 px, on the carriageways only (inside the junction box several legal flows cross) |
+| illegal_u_turn | continuous track (no id switch, no frame-edge clipping) whose start and end headings differ by ≥ 150°; segment = the contiguous turning stretch |
 | congestion | ≥ 6 vehicles stationary/crawling in the approach while its signal is green, ≥ 10 s |
 | accident | ground footprints of two road users touch while they were closing in; both stop within 2.5 s and stay stopped ≥ 4 s; not in the queue |
 | near_miss | the Part B conflict score above the alarm level for ≥ 0.4 s with no contact afterwards |
 
-`illegal_turn`, `solid_line_crossing`, `road_obstacle` and `fire_smoke` are never predicted:
+| road_obstacle | an animal, or an unattended bag/suitcase lying still, on the carriageway (COCO classes) |
+
+`illegal_turn`, `solid_line_crossing` and `fire_smoke` are never predicted:
 Score A is a macro average over the classes present in the ground truth *or* in the
 predictions, so a class we cannot detect reliably is better left out than guessed.
 
@@ -87,13 +94,21 @@ each pair of moving road users on the carriageway (at least one a vehicle) the g
 footprints are extrapolated linearly; if they would start to overlap within 3 s, the pair
 scores relative speed / (2 · time to contact), the deceleration needed to avoid contact
 (a DRAC-style surrogate safety measure). Parked and queued road users are ignored, a pair
-must stay dangerous in two consecutive processed frames, and a logistic maps the score to
-[0, 1] with 0.5 just above the 99.9th percentile of normal traffic in the samples.
+must stay dangerous for three consecutive processed frames (~0.6 s), and a logistic maps the
+score to [0, 1] so that normal traffic in all four samples stays below 0.3. If the run is
+heading over the time budget, Part B thins its detection rate (and Part A its frame rate).
 
 **Learned vs rule-based.** Learned: YOLO11 weights (COCO pre-training by Ultralytics, used
 as is), the lane-direction field and the risk calibration (fitted on our sample videos).
 Rule-based: everything else (tracking association, layout, signal reading, event rules,
 segment post-processing).
+
+## Website and live demo
+
+The website is a static Hugging Face Space (`python deploy/build_space.py --upload Shoxijaxonbek/Feba`).
+The live demo runs the submitted pipeline on our own GPU machine: `python deploy/serve_demo.py
+--space Shoxijaxonbek/Feba` starts `app/server.py`, opens a free Cloudflare quick tunnel and
+publishes its address into the Space's `data/config.json`, which the page reads.
 
 ## Datasets and licences
 
@@ -107,9 +122,9 @@ No other external data was used.
 
 ## Runtime
 
-On an RTX 4050 laptop GPU (the target is a T4): Part A ≈ 0.6x the video duration, Part B
-≈ 1.3x (most of it is the harness decoding every 4K frame), total ≈ 1.9x against the 3x
-budget. `python scripts/cache_observations.py` caches Part A's detections so rules can be
+On an RTX 4050 laptop GPU (the target is a T4): about 2x the video duration in total against
+the 3x budget; most of Part B's time is the harness decoding every 4K frame (exact per-video
+timings are in `predictions_samples.json` under `log`). `python scripts/cache_observations.py` caches Part A's detections so rules can be
 tuned in seconds.
 
 ## Determinism
@@ -128,7 +143,8 @@ src/roadwatch/            the pipeline (video, detector, tracking, scene, signal
 configs/                  scene layout + learned lane-direction field
 weights/                  YOLO11 checkpoints
 scripts/                  data download, caching, layout drawing, EDA and website export, risk replay, clip cutting
-app/server.py             live-demo backend (FastAPI), serves website/
+app/server.py             live-demo backend (FastAPI)
+deploy/                   website deployment (static Hugging Face Space) and the demo tunnel
 website/                  static team website
 labels/                   our dev labels of the sample videos
 predictions_samples.json  our output on the sample videos

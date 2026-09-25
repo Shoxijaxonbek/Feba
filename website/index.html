@@ -245,13 +245,13 @@
                 <div><dt>Detector</dt><dd><strong>YOLO11m</strong>, open COCO weights (person, bicycle, car, motorcycle, bus, truck). The medium size is the accuracy/speed sweet spot; see the ablations under Metrics.</dd></div>
                 <div><dt>Tracker</dt><dd><strong>ByteTrack</strong> in three groups (vehicles, two-wheelers, pedestrians), so a cyclist never swaps identity with a pedestrian.</dd></div>
                 <div><dt>Decoding</dt><dd><strong>PyAV</strong> decodes only the I- and P-frames of the camera's I-B-B-P GOP: every third frame, ≈10 fps, at about 5× realtime.</dd></div>
-                <div><dt>Data</dt><dd>The organisers' sample videos only. The scene layout is drawn once on this fixed view; the lane directions are learned from our own trajectories; our dev set is our own labels of the samples.</dd></div>
+                <div><dt>Data</dt><dd>The organisers' four sample videos only (two at midday, two at dusk). The scene layout is drawn once on a reference view and every video is registered to it; the lane directions are learned from our own trajectories; our dev set is our own labels of the samples.</dd></div>
                 <div><dt>Runtime</dt><dd>Part A runs faster than the video plays, far inside the 3× budget. Exact numbers are under Metrics.</dd></div>
               </dl>
             </article>
             <article class="card">
               <h3>Traffic-light reader</h3>
-              <p>Small boxes around each lamp of the main signal head are checked for a red, amber or green glow. The reader recovers the fixed 80 s cycle: red 37 s, red + amber 3 s, green 33 s, flashing green 4 s, amber 3 s.</p>
+              <p>Each lamp of the main signal head is located as the spot whose own colour switches on and off over the video, then read frame by frame. That works at dusk and in harsh midday sun, where the lit lamp is barely brighter than its housing. The cycle is fixed but depends on the time of day (80 s at dusk, 75 s at midday), so nothing is assumed: every video is read. Before that, each video is registered to our reference view with SIFT features, because the tripod moved by up to 80 px between recordings.</p>
             </article>
           </div>
         </div>
