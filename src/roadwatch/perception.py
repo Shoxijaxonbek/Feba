@@ -14,13 +14,18 @@ from typing import Callable, Protocol
 
 import numpy as np
 
+from . import alignment
 from .detector import Detector
 from .tracking import MultiTracker, Track
 from .video import VideoInfo, iter_frames, probe
 
 
 class FrameObserver(Protocol):
-    """Anything that wants to look at the sampled frames (signal reader, background model...)."""
+    """Anything that wants to look at the sampled frames (signal reader, background model...).
+
+    If it defines `align(m)`, it is called once with the 2x3 affine mapping reference
+    scene coordinates to this video's frames (see alignment.py) before the first frame.
+    """
 
     def observe(self, t: float, frame: np.ndarray) -> None: ...
 
@@ -63,6 +68,7 @@ def observe_video(path: str, detector: Detector, target_fps: float = 10.0, batch
     buf_f: list[np.ndarray] = []
     t_start = time.perf_counter()
     t_detect = 0.0
+    to_reference = None  # frame -> reference view, estimated on the first frame
 
     def flush() -> None:
         nonlocal t_detect
@@ -70,6 +76,7 @@ def observe_video(path: str, detector: Detector, target_fps: float = 10.0, batch
         dets = detector(buf_f)
         t_detect += time.perf_counter() - t1
         for t, d in zip(buf_t, dets):
+            d[:, :4] = alignment.map_boxes(to_reference, d[:, :4])
             tracker.update(t, d)
             times.append(t)
             all_dets.append(d)
@@ -79,6 +86,11 @@ def observe_video(path: str, detector: Detector, target_fps: float = 10.0, batch
     for t, frame in iter_frames(path, target_fps=target_fps):
         if t > info.duration:
             break
+        if to_reference is None:
+            to_reference = alignment.estimate(frame)
+            for obs in observers.values():
+                if hasattr(obs, "align"):
+                    obs.align(alignment.invert(to_reference))
         for obs in observers.values():
             obs.observe(t, frame)
         buf_t.append(t)
@@ -96,6 +108,7 @@ def observe_video(path: str, detector: Detector, target_fps: float = 10.0, batch
         times=np.asarray(times),
         tracks=tracker.tracks(),
         detections=all_dets,
-        side={name: obs.result() for name, obs in observers.items()},
+        side={name: obs.result() for name, obs in observers.items()}
+        | {"alignment": (to_reference if to_reference is not None else alignment.IDENTITY).tolist()},
         timing={"total_sec": round(total, 2), "detect_sec": round(t_detect, 2), "frames": len(times)},
     )

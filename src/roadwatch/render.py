@@ -8,6 +8,7 @@ import av
 import cv2
 import numpy as np
 
+from . import alignment
 from .perception import Observation
 from .segments import Event
 from .video import iter_frames
@@ -32,6 +33,8 @@ class Annotator:
         self.obs, self.events, self.trail_s = obs, events, trail_s
         self.risk = np.asarray(risk, dtype=np.float64).reshape(-1, 2) if risk else np.zeros((0, 2))
         self.signal = signal
+        # tracks live in reference-view coordinates; draw them where they are in this video
+        self.to_frame = alignment.invert(np.asarray(obs.side.get("alignment", alignment.IDENTITY)))
 
     def draw(self, frame: np.ndarray, t: float) -> np.ndarray:
         img = frame.copy()
@@ -46,10 +49,10 @@ class Annotator:
             colour = EVENT_BGR if tid in hot else GROUP_BGR[tr.group]
             thick = 3 if tid in hot else 2
             m = (tr.t >= t - self.trail_s) & (tr.t <= t + 0.06)
-            pts = tr.foot[m].astype(np.int32)
+            pts = alignment.apply(self.to_frame, tr.foot[m]).astype(np.int32)
             if len(pts) > 1:
                 cv2.polylines(img, [pts.reshape(-1, 1, 2)], False, colour, thick, cv2.LINE_AA)
-            x1, y1, x2, y2 = tr.box[i].astype(int)
+            x1, y1, x2, y2 = alignment.map_boxes(self.to_frame, tr.box[i:i + 1])[0].astype(int)
             cv2.rectangle(img, (x1, y1), (x2, y2), colour, thick, cv2.LINE_AA)
         self._banner(img, t, active)
         return img
