@@ -5,7 +5,7 @@
     "members": [
       {
         "name": "Shuxratov Shoxijaxonbek",
-        "role": "Team captain · computer vision",
+        "role": "Team captain · project manager",
         "contributions": [
           "Video decoding, YOLO11 detection and ByteTrack tracking",
           "Scene layout, traffic-light reader and the event rules",
@@ -25,11 +25,13 @@
           "EDA charts and the operator dashboard",
           "Mobile layout, light and dark themes"
         ],
-        "github": null,
-        "linkedin": null,
+        "github": "https://github.com/diyorbek20037773",
+        "linkedin": "https://www.linkedin.com/in/diyorbek-ibragimov-757830338",
         "portfolio": null,
         "photo": null,
-        "projects": []
+        "projects": [],
+        "youtube": "https://www.youtube.com/@DiyorbekIbragimov7377",
+        "telegram": "https://t.me/diyorbek_ds_7377"
       },
       {
         "name": "Lutfullayev Mirfayz",
