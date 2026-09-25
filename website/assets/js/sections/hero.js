@@ -1,4 +1,4 @@
-// Hero key numbers: videos processed, events detected, footage length, runtime vs budget.
+// Hero key numbers: dev score, events found, full run time vs budget, false alarms.
 import { h, fmtNum } from '../util.js';
 import { loadIndex, loadMetrics, loadAllSamples } from '../store.js';
 
@@ -20,36 +20,54 @@ export async function runtimeRows() {
   }));
 }
 
+/** Official Score A on our dev labels: the C3902 row of the "Dev sets" table in metrics.json. */
+function devScore(metrics) {
+  const table = (metrics?.ablations || []).find((a) => /^Dev sets/.test(a.name));
+  const row = table?.rows?.find((r) => /^C3902/.test(r.variant)) || table?.rows?.[0];
+  return Number.isFinite(row?.score_a) ? row.score_a : metrics?.score_a;
+}
+
 export async function initHero() {
   const box = document.getElementById('hero-kpis');
-  const [idx, all, timing] = await Promise.all([loadIndex(), loadAllSamples(), runtimeRows()]);
+  const [idx, all, timing, metrics] = await Promise.all([loadIndex(), loadAllSamples(), runtimeRows(), loadMetrics()]);
   const results = new Map(all.map((x) => [x.entry.id, x.result]));
 
   const events = idx.reduce((n, e) => n + (Number.isFinite(e.n_events) ? e.n_events : results.get(e.id)?.events?.length || 0), 0);
   const footage = idx.reduce((n, e) => n + (Number(e.duration) || Number(results.get(e.id)?.duration) || 0), 0);
-  const labels = new Set(all.flatMap((x) => (x.result.events || []).map((e) => (Array.isArray(e) ? e[2] : e.label))));
 
-  const rows = timing.filter((t) => Number(t.duration) > 0 && Number.isFinite(t.part_a_sec));
+  // whole run (Part A + Part B) against the time budget, over all sample videos
+  const rows = timing.filter((t) => Number(t.duration) > 0 && Number.isFinite(t.part_a_sec) && Number.isFinite(t.part_b_sec));
   const dur = rows.reduce((n, t) => n + Number(t.duration), 0);
-  const ratioA = dur ? rows.reduce((n, t) => n + t.part_a_sec, 0) / dur : null;
+  const ratio = dur ? rows.reduce((n, t) => n + t.part_a_sec + t.part_b_sec, 0) / dur : null;
   const budgetRows = rows.filter((t) => Number(t.budget_sec) > 0);
   const budget = budgetRows.length
     ? budgetRows.reduce((n, t) => n + Number(t.budget_sec), 0) / budgetRows.reduce((n, t) => n + Number(t.duration), 0)
     : DEFAULT_BUDGET;
 
-  const riskSamples = all.flatMap((x) => (Array.isArray(x.result.risk) ? x.result.risk : []));
-  const alarmed = riskSamples.filter((p) => p[1] >= 0.5).length;
+  // alarms = separate runs of risk >= 0.5 (what the Part B metric counts)
+  let alarms = 0;
+  for (const { result } of all) {
+    let prev = 0;
+    for (const [, r] of Array.isArray(result.risk) ? result.risk : []) {
+      if (r >= 0.5 && prev < 0.5) alarms += 1;
+      prev = r;
+    }
+  }
+  const score = devScore(metrics);
+  const minutes = fmtNum(footage / 60, 1);
 
-  const meter = ratioA != null
-    ? h('span', { class: 'meter meter--budget', role: 'img', 'aria-label': `${ratioA.toFixed(2)} of a ${budget.toFixed(1)} times budget` },
-        h('span', { class: 'meter-fill', style: { width: `${Math.min(100, (ratioA / budget) * 100)}%` } }))
+  const meter = ratio != null
+    ? h('span', { class: 'meter meter--budget', role: 'img', 'aria-label': `${ratio.toFixed(1)} of a ${budget.toFixed(1)} times budget` },
+        h('span', { class: 'meter-fill', style: { width: `${Math.min(100, (ratio / budget) * 100)}%` } }))
     : null;
 
   box.replaceChildren(...[
-    tile('Sample videos processed', fmtNum(idx.length), footage ? `${fmtNum(footage / 60, 1)} min of 4K footage` : null),
-    tile('Events detected', fmtNum(events), labels.size ? `${labels.size} of 14 event classes` : null),
-    tile('Part A runtime', ratioA != null ? `${ratioA.toFixed(2)}×` : '–', `of video length · budget ${fmtNum(budget, 1)}×`, meter),
-    riskSamples.length ? tile('Time above risk alarm', `${fmtNum((100 * alarmed) / riskSamples.length, 1)} %`, 'risk ≥ 0.5; normal traffic stays below') : null,
+    Number.isFinite(score) ? tile('Event detection score', score.toFixed(2),
+      'official metric (Score A) on our own labels of C3902') : null,
+    tile('Traffic events found', fmtNum(events), footage ? `in ${minutes} min of 4K video, day and dusk` : null),
+    ratio != null ? tile('Full run time', `${ratio.toFixed(1)}×`, `video length, Part A + B · limit ${fmtNum(budget, 1)}×`, meter) : null,
+    all.some((x) => Array.isArray(x.result.risk) && x.result.risk.length)
+      ? tile('False accident alarms', fmtNum(alarms), `in ${minutes} min of normal traffic`) : null,
   ].filter(Boolean));
   box.removeAttribute('aria-busy');
 }
