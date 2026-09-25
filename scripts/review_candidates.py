@@ -20,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from inspect_frames import draw, grab  # noqa: E402
+from roadwatch import alignment  # noqa: E402
 from roadwatch.flow import FlowField  # noqa: E402
 from roadwatch.perception import Observation  # noqa: E402
 from roadwatch.rules import detect_all, pedestrian  # noqa: E402
@@ -32,7 +33,10 @@ LOOSE = {  # recall-oriented thresholds
 
 
 def crop_box(obs: Observation, tids: set[int], s: float, e: float, margin: int = 120) -> tuple[int, int, int, int]:
-    boxes = [tr.box[(tr.t >= s - 1) & (tr.t <= e)] for tid, tr in obs.tracks.items() if tid in tids]
+    """Frame region (video coordinates) around the involved tracks."""
+    to_frame = alignment.invert(np.asarray(obs.side.get("alignment", alignment.IDENTITY)))
+    boxes = [alignment.map_boxes(to_frame, tr.box[(tr.t >= s - 1) & (tr.t <= e)])
+             for tid, tr in obs.tracks.items() if tid in tids]
     boxes = np.concatenate([b for b in boxes if len(b)] or [np.array([[0, 0, 1920, 1080]])])
     x0, y0 = boxes[:, :2].min(0) - margin
     x1, y1 = boxes[:, 2:].max(0) + margin
@@ -66,7 +70,7 @@ def main() -> None:
         x0, y0, x1, y1 = crop_box(obs, ev.tracks, ev.start, ev.end)
         tiles = []
         for t in times:
-            img = draw(frames[t], obs, t, ev.tracks)[y0:y1, x0:x1]
+            img = draw(frames[t], obs, t, ev.tracks, trail=max(3.0, t - ev.start + 1.0))[y0:y1, x0:x1]
             tiles.append(cv2.resize(img, (480, int(480 * img.shape[0] / img.shape[1]))))
         h = max(t.shape[0] for t in tiles)
         tiles = [cv2.copyMakeBorder(t, 0, h - t.shape[0], 0, 4, cv2.BORDER_CONSTANT) for t in tiles]

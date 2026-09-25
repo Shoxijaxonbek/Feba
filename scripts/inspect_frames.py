@@ -14,6 +14,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+from roadwatch import alignment  # noqa: E402
 from roadwatch.perception import Observation  # noqa: E402
 from roadwatch.video import SCENE_H, SCENE_W  # noqa: E402
 
@@ -37,17 +38,19 @@ def grab(video: str, times: list[float]) -> dict[float, np.ndarray]:
 
 
 def draw(frame: np.ndarray, obs: Observation, t: float, highlight: set[int], trail: float = 3.0) -> np.ndarray:
+    """Tracks live in reference-view coordinates; they are drawn where they are in this video."""
     img = frame.copy()
+    to_frame = alignment.invert(np.asarray(obs.side.get("alignment", alignment.IDENTITY)))
     for tid, tr in obs.tracks.items():
         m = (tr.t <= t + 0.06) & (tr.t >= t - trail)
         if not m.any():
             continue
         hot = tid in highlight
         col = (0, 0, 255) if hot else GROUP_COLOURS[tr.group]
-        p = tr.foot[m].astype(int)
+        p = alignment.apply(to_frame, tr.foot[m]).astype(np.int32)
         cv2.polylines(img, [p.reshape(-1, 1, 2)], False, col, 3 if hot else 1)
         if abs(tr.t[m][-1] - t) < 0.15:
-            x1, y1, x2, y2 = tr.box[m][-1].astype(int)
+            x1, y1, x2, y2 = alignment.map_boxes(to_frame, tr.box[m][-1:])[0].astype(int)
             cv2.rectangle(img, (x1, y1), (x2, y2), col, 3 if hot else 1)
             cv2.putText(img, str(tid), (x1, y1 - 3), cv2.FONT_HERSHEY_SIMPLEX, 0.5, col, 1 + hot)
     cv2.putText(img, f"{t:.1f}s", (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.3, (255, 255, 255), 3)

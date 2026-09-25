@@ -1,13 +1,37 @@
-// Live demo: upload an .mp4 to the same-origin API, poll the job, render the result with the
-// shared result viewer. Degrades to a "backend offline" notice on static hosting.
+// Live demo: upload an .mp4 to the demo API, poll the job, render the result with the shared
+// result viewer. The API lives at data/config.json's `api_base` (our GPU machine behind a
+// tunnel) or, when that is empty, on the same origin. Degrades to an "offline" notice.
 import { h, fill, fmtNum, fmtTime, ICON } from '../util.js';
 import { loadIndex, loadSample } from '../store.js';
 import { mountResult } from '../result-view.js';
 
-const API = '/api';
-const MAX_MB = 500;
+let BASE = '';          // origin of the demo server, '' = same origin
+let API = '/api';
+const MAX_MB = 100;     // Cloudflare's per-request upload limit on the tunnel
 const MAX_SEC = 120;
 const POLL_MS = 2000;
+
+async function loadApiBase() {
+  try {
+    const res = await fetch('data/config.json', { cache: 'no-store' });
+    const cfg = res.ok ? await res.json() : {};
+    BASE = String(cfg.api_base || '').replace(/\/+$/, '');
+  } catch {
+    BASE = '';
+  }
+  API = `${BASE}/api`;
+}
+
+/** Media paths in a result are relative to the demo server; make them absolute. */
+function absolutize(result) {
+  const abs = (u) => (u && BASE && !/^(https?:|data:|blob:|\/)/i.test(u) ? `${BASE}/${u}` : u);
+  return {
+    ...result,
+    annotated_video: abs(result.annotated_video),
+    poster: abs(result.poster),
+    events: (result.events || []).map((e) => ({ ...e, thumb: abs(e.thumb) })),
+  };
+}
 
 const STAGES = {
   queued: 'Waiting in the queue', uploading: 'Uploading', decoding: 'Decoding frames', detecting: 'Detecting road users',
@@ -101,7 +125,7 @@ export async function initDemo() {
         h('ul', { class: 'tick-list' },
           h('li', {}, `.mp4 video, at most ${MAX_SEC / 60} minutes and ${MAX_MB} MB.`),
           h('li', {}, 'Footage from the same junction camera works best: the scene layout and lane directions are specific to that view.'),
-          h('li', {}, 'The demo server runs on CPU, so a 2-minute clip takes a few minutes. Keep this tab open to watch the progress.')))),
+          h('li', {}, 'The demo server is our own GPU laptop, reached through a tunnel, and runs the full submission model: a 2-minute clip takes 2–3 minutes plus the upload. Keep this tab open to watch the progress.')))),
     resultBox);
 
   const setBusy = (b) => {
@@ -124,9 +148,9 @@ export async function initDemo() {
     stage.textContent = `${text} · ${pct} %`;
   };
   const offlineNotice = () => say('info',
-    h('strong', {}, 'The demo server is offline. '),
-    'This copy of the site is static (for example GitHub Pages), so it cannot process uploads. ',
-    'Start the backend from the repository and open the site from it, or use “Try with a sample clip” to see a precomputed result.');
+    h('strong', {}, 'The demo server is offline right now. '),
+    'It runs on our own machine, which may be restarting. Try again in a few minutes, ',
+    'or use “Try with a sample clip” to see a precomputed result.');
 
   function clearResult() {
     view?.destroy();
@@ -181,7 +205,7 @@ export async function initDemo() {
       }
       const res = await fetch(`${API}/jobs/${encodeURIComponent(id)}/result`, { cache: 'no-store' });
       if (!res.ok) throw new Error(`Could not fetch the result (HTTP ${res.status}).`);
-      const result = await res.json();
+      const result = absolutize(await res.json());
       progress.hidden = true;
       say('success', `Done in ${fmtTime((Date.now() - started) / 1000, false)}. ${result.events?.length ?? 0} events found.`);
       view = mountResult(resultBox, result, {
@@ -222,6 +246,7 @@ export async function initDemo() {
     if (!busy) choose(e.dataTransfer.files[0]);
   });
 
+  await loadApiBase();
   online = await probeBackend();
   const queued = Number.isFinite(online?.queue) && online.queue > 0 ? ` ${online.queue} job(s) ahead of you.` : '';
   fill(status, h('span', { class: `dot ${online ? 'dot--ok' : 'dot--off'}`, 'aria-hidden': 'true' }),
