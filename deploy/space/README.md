@@ -6,7 +6,7 @@ colorTo: red
 sdk: docker
 app_port: 7860
 pinned: false
-short_description: Traffic events and accident risk from a fixed junction camera
+short_description: Traffic events and accident risk from a junction camera
 ---
 
 RoadSense — WIUT Hackathon 2026, Computer Vision track. The website (team, approach, EDA,
