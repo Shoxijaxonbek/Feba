@@ -37,10 +37,10 @@
         "contributions": [
           "Live-demo API: uploads, job queue and progress",
           "Annotated video rendering and event thumbnails",
-          "Deployment on Hugging Face Spaces"
+          "Deployment: Hugging Face Space and the cloud demo server"
         ],
-        "github": null,
-        "linkedin": null,
+        "github": "https://github.com/MirfayzLutfullayev",
+        "linkedin": "https://www.linkedin.com/in/mirfayz-lutfullayev-32aa98382",
         "portfolio": null,
         "photo": null,
         "projects": []

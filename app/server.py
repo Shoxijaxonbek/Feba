@@ -4,7 +4,8 @@
 
 Serves the API under /api (see website/DATA_CONTRACT.md) and, for local use, the
 static website at "/". The public site is a static Hugging Face Space that calls this
-API through a tunnel (deploy/serve_demo.py), so cross-origin requests are allowed.
+API cross-origin; it is hosted on a Modal cloud GPU (deploy/modal_app.py) or, from any
+machine, through a Cloudflare tunnel (deploy/serve_demo.py).
 Jobs run one at a time in a background thread with the submission settings; on a
 machine without a GPU set ROADWATCH_WEIGHTS=yolo11s.pt ROADWATCH_IMGSZ=960 ROADWATCH_FPS=5.
 """
@@ -106,8 +107,15 @@ app = FastAPI(title="RoadSense demo")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET", "POST"], allow_headers=["*"])
 
 
+_started = threading.Event()
+
+
 @app.on_event("startup")
-def _startup() -> None:
+def startup() -> None:
+    """Idempotent: hosts that do not run ASGI lifespan events (deploy/modal_app.py) call it directly."""
+    if _started.is_set():
+        return
+    _started.set()
     shutil.rmtree(JOBS_DIR, ignore_errors=True)
     JOBS_DIR.mkdir(parents=True)
     threading.Thread(target=_worker, daemon=True).start()
@@ -169,4 +177,5 @@ def health() -> dict:
     return {"ok": True, "queue": work.qsize(), "weights": pipeline.DETECTOR_WEIGHTS, "fps": pipeline.PART_A_FPS}
 
 
-app.mount("/", StaticFiles(directory=ROOT / "website", html=True), name="site")
+if (ROOT / "website").is_dir():  # local use; the public site is a static Space
+    app.mount("/", StaticFiles(directory=ROOT / "website", html=True), name="site")

@@ -106,9 +106,11 @@ segment post-processing).
 ## Website and live demo
 
 The website is a static Hugging Face Space (`python deploy/build_space.py --upload Shoxijaxonbek/Feba`).
-The live demo runs the submitted pipeline on our own GPU machine: `python deploy/serve_demo.py
---space Shoxijaxonbek/Feba` starts `app/server.py`, opens a free Cloudflare quick tunnel and
-publishes its address into the Space's `data/config.json`, which the page reads.
+The live demo's API (`app/server.py`) runs on Modal (`python -m modal deploy deploy/modal_app.py`),
+on 8 CPU cores with YOLO11m at 960 px (Modal's free tier has no GPUs); its URL is the `api_base` in the
+Space's `data/config.json`, which the page reads. Alternatively, from any GPU machine,
+`python deploy/serve_demo.py --space Shoxijaxonbek/Feba` serves it through a free Cloudflare
+quick tunnel and publishes that address instead.
 
 ## Datasets and licences
 

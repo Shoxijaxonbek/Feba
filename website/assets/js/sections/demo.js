@@ -1,13 +1,13 @@
 // Live demo: upload an .mp4 to the demo API, poll the job, render the result with the shared
-// result viewer. The API lives at data/config.json's `api_base` (our GPU machine behind a
-// tunnel) or, when that is empty, on the same origin. Degrades to an "offline" notice.
+// result viewer. The API lives at data/config.json's `api_base` (a Modal cloud server) or,
+// when that is empty, on the same origin. Degrades to an "offline" notice.
 import { h, fill, fmtNum, fmtTime, ICON } from '../util.js';
 import { loadIndex, loadSample } from '../store.js';
 import { mountResult } from '../result-view.js';
 
 let BASE = '';          // origin of the demo server, '' = same origin
 let API = '/api';
-const MAX_MB = 100;     // Cloudflare's per-request upload limit on the tunnel
+const MAX_MB = 100;
 const MAX_SEC = 120;
 const POLL_MS = 2000;
 
@@ -125,7 +125,7 @@ export async function initDemo() {
         h('ul', { class: 'tick-list' },
           h('li', {}, `.mp4 video, at most ${MAX_SEC / 60} minutes and ${MAX_MB} MB.`),
           h('li', {}, 'Footage from the same junction camera works best: the scene layout and lane directions are specific to that view.'),
-          h('li', {}, 'The demo server is our own GPU laptop, reached through a tunnel, and runs the full submission model: a 2-minute clip takes 2–3 minutes plus the upload. Keep this tab open to watch the progress.')))),
+          h('li', {}, 'The demo runs on cloud CPU cores (Modal), so a 2-minute clip takes about 4–5 minutes. If nobody used it in the last 15 minutes, the first upload also waits a few seconds while the server wakes up. Keep this tab open to watch the progress.')))),
     resultBox);
 
   const setBusy = (b) => {
@@ -149,7 +149,7 @@ export async function initDemo() {
   };
   const offlineNotice = () => say('info',
     h('strong', {}, 'The demo server is offline right now. '),
-    'It runs on our own machine, which may be restarting. Try again in a few minutes, ',
+    'The cloud server may be waking up. Try again in a minute, ',
     'or use “Try with a sample clip” to see a precomputed result.');
 
   function clearResult() {

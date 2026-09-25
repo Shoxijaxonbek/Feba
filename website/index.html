@@ -323,7 +323,7 @@
           <p class="eyebrow">Live demo</p>
           <h2 id="demo-title">Run it on your own clip</h2>
           <p class="lede">Upload a short .mp4. The server runs the full pipeline and returns the same views as the results above.</p>
-          <p class="lede">The demo runs exactly the submitted pipeline (YOLO11m, 10 fps, same rules and risk model) on our own GPU laptop, reached through a Cloudflare tunnel. Uploads are limited to 100 MB by the tunnel; a 1080p clip of up to 2 minutes fits.</p>
+          <p class="lede">The demo runs our pipeline (same detector, rules and risk model) on cloud CPU cores, so no team machine has to stay on. Without a GPU it looks at frames at 960 px instead of 1280 px, which misses some small, distant road users: Score A 0.80 instead of 0.86 on our C3902 labels. The results above come from the full submitted settings. Uploads up to 100 MB and 2 minutes; a 1080p clip of that length fits.</p>
         </header>
         <div id="demo-body" class="stack"><p class="loading">Loading demo…</p></div>
       </div>
