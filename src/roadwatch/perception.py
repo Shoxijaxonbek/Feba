@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pickle
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Callable, Protocol
 
@@ -49,8 +49,12 @@ class Observation:
 
 def observe_video(path: str, detector: Detector, target_fps: float = 10.0, batch: int = 8,
                   observers: dict[str, FrameObserver] | None = None,
-                  progress: Callable[[float], None] | None = None) -> Observation:
+                  progress: Callable[[float], None] | None = None,
+                  max_seconds: float | None = None) -> Observation:
+    """Detect and track road users in `path` (only the first `max_seconds` if given)."""
     info = probe(path)
+    if max_seconds is not None and info.duration > max_seconds:
+        info = replace(info, duration=max_seconds, n_frames=int(max_seconds * info.fps))
     observers = observers or {}
     tracker = MultiTracker(fps=target_fps)
     times: list[float] = []
@@ -73,6 +77,8 @@ def observe_video(path: str, detector: Detector, target_fps: float = 10.0, batch
         buf_f.clear()
 
     for t, frame in iter_frames(path, target_fps=target_fps):
+        if t > info.duration:
+            break
         for obs in observers.values():
             obs.observe(t, frame)
         buf_t.append(t)

@@ -1,0 +1,61 @@
+{
+  "_mock": true,
+  "team": {
+    "name": "Team Name",
+    "tagline": "Three students who wanted a traffic camera to explain what it sees.",
+    "members": [
+      {
+        "name": "Member One",
+        "role": "CV / tracking",
+        "contributions": [
+          "Reference-frame video decoder with PyAV",
+          "YOLO11m detection with GPU pre/post-processing",
+          "ByteTrack in three groups and the traffic-light reader"
+        ],
+        "github": "#",
+        "linkedin": "#",
+        "portfolio": "#",
+        "photo": null,
+        "projects": [
+          {"title": "Previous project", "url": "#", "blurb": "One-line description of an earlier project."}
+        ]
+      },
+      {
+        "name": "Member Two",
+        "role": "Rules & evaluation",
+        "contributions": [
+          "Scene layout annotation and lane-direction field",
+          "Event rules and segment post-processing",
+          "Dev-set labels, temporal-IoU evaluation and the Part B risk model"
+        ],
+        "github": "#",
+        "linkedin": "#",
+        "portfolio": null,
+        "photo": null,
+        "projects": [
+          {"title": "Previous project", "url": "#", "blurb": "One-line description of an earlier project."}
+        ]
+      },
+      {
+        "name": "Member Three",
+        "role": "Web & demo",
+        "contributions": [
+          "This website and the operator dashboard",
+          "FastAPI demo backend and the annotated renders",
+          "EDA notebooks and figures"
+        ],
+        "github": "#",
+        "linkedin": null,
+        "portfolio": "#",
+        "photo": null,
+        "projects": []
+      }
+    ]
+  },
+  "links": {
+    "repo": "#",
+    "weights": "#",
+    "predictions": "data/predictions_samples.json",
+    "report_pdf": null
+  }
+}

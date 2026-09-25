@@ -36,7 +36,7 @@ class Context:
 
     def signal_at(self, name: str, t: float | np.ndarray, hold: float = 2.0) -> np.ndarray:
         """Signal state at time(s) t; brief gaps (flashing green, occlusion) keep the last known state."""
-        st_t, st = self.signal[name]
+        st_t, st = self.signal.get(name, (np.zeros(0), np.zeros(0, dtype=object)))
         t = np.atleast_1d(t)
         if len(st_t) == 0:
             return np.full(len(t), UNKNOWN, dtype=object)
@@ -52,12 +52,16 @@ class Context:
 
     def next_change(self, name: str, t: float, to: str = GREEN) -> float | None:
         """First time >= t at which signal `name` shows `to`."""
+        if name not in self.signal:
+            return None
         st_t, st = self.signal[name]
         idx = np.flatnonzero((st_t >= t) & (st == to))
         return float(st_t[idx[0]]) if len(idx) else None
 
     def red_since(self, name: str, t: float) -> float:
         """How long signal `name` has been red at time t (0 if it is not red)."""
+        if name not in self.signal:
+            return 0.0
         st_t, st = self.signal[name]
         i = np.searchsorted(st_t, t, side="right") - 1
         if i < 0 or st[i] != RED:

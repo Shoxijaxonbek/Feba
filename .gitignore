@@ -8,3 +8,4 @@ __pycache__/
 *.chunks.json
 website/node_modules/
 website/dist/
+app/jobs/

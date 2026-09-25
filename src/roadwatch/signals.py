@@ -65,7 +65,24 @@ def _median_filter(x: np.ndarray, k: int) -> np.ndarray:
     return np.median(np.lib.stride_tricks.sliding_window_view(xp, k), axis=1)
 
 
-def signal_states(reading: dict, name: str, smooth: int = 5) -> tuple[np.ndarray, np.ndarray]:
+def _fill_short_gaps(t: np.ndarray, code: np.ndarray, max_gap_s: float) -> np.ndarray:
+    """Unknown (0) runs shorter than max_gap_s take the previous state (flashing green, brief occlusion)."""
+    code = code.copy()
+    i = 0
+    while i < len(code):
+        if code[i] == 0 and i > 0:
+            j = i
+            while j < len(code) and code[j] == 0:
+                j += 1
+            if j < len(code) and t[j] - t[i - 1] <= max_gap_s:
+                code[i:j] = code[i - 1]
+            i = j
+        else:
+            i += 1
+    return code
+
+
+def signal_states(reading: dict, name: str, smooth: int = 5, max_gap_s: float = 2.0) -> tuple[np.ndarray, np.ndarray]:
     """(times, state array of RED/AMBER/GREEN/UNKNOWN) for one signal head."""
     t = reading["t"]
     glow = reading["glow"].get(name, {})
@@ -77,7 +94,7 @@ def signal_states(reading: dict, name: str, smooth: int = 5) -> tuple[np.ndarray
         code[_lamp_on(glow["amber"]) & (code == 0)] = 2
     if "green" in glow:
         code[_lamp_on(glow["green"])] = 3
-    code = _median_filter(code, smooth)
+    code = _fill_short_gaps(t, _median_filter(code, smooth), max_gap_s)
     for c, s in ((1, RED), (2, AMBER), (3, GREEN)):
         state[code == c] = s
     return t, state

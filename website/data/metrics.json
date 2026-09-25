@@ -1,0 +1,120 @@
+{
+  "_mock": true,
+  "dev_set": "our own labels of the sample videos (C3902, C3905)",
+  "per_class": {
+    "stopped_vehicle": {
+      "f1_03": 0.67,
+      "f1_05": 0.67,
+      "f1_07": 0.4,
+      "tp": 2,
+      "fp": 1,
+      "fn": 1
+    },
+    "illegal_u_turn": {
+      "f1_03": 0.5,
+      "f1_05": 0.4,
+      "f1_07": 0.2,
+      "tp": 2,
+      "fp": 2,
+      "fn": 2
+    },
+    "jaywalking": {
+      "f1_03": 0.62,
+      "f1_05": 0.51,
+      "f1_07": 0.31,
+      "tp": 13,
+      "fp": 6,
+      "fn": 10
+    },
+    "failure_to_yield": {
+      "f1_03": 0.55,
+      "f1_05": 0.43,
+      "f1_07": 0.22,
+      "tp": 12,
+      "fp": 9,
+      "fn": 11
+    },
+    "stop_line": {
+      "f1_03": 0.86,
+      "f1_05": 0.71,
+      "f1_07": 0.57,
+      "tp": 6,
+      "fp": 1,
+      "fn": 1
+    },
+    "red_light": {
+      "f1_03": 0.0,
+      "f1_05": 0.0,
+      "f1_07": 0.0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 2
+    }
+  },
+  "score_a": 0.41,
+  "score_b": null,
+  "ablations": [
+    {
+      "name": "Detector size",
+      "rows": [
+        {
+          "variant": "YOLO11s",
+          "score_a": 0.33,
+          "sec_per_min": 17
+        },
+        {
+          "variant": "YOLO11m (used)",
+          "score_a": 0.41,
+          "sec_per_min": 28
+        },
+        {
+          "variant": "YOLO11l",
+          "score_a": 0.42,
+          "sec_per_min": 41
+        }
+      ]
+    },
+    {
+      "name": "Frame sampling",
+      "rows": [
+        {
+          "variant": "all frames (29.97 fps)",
+          "score_a": 0.41,
+          "sec_per_min": 96
+        },
+        {
+          "variant": "reference frames only (~10 fps, used)",
+          "score_a": 0.41,
+          "sec_per_min": 28
+        },
+        {
+          "variant": "every 6th frame (~5 fps)",
+          "score_a": 0.35,
+          "sec_per_min": 18
+        }
+      ]
+    },
+    {
+      "name": "Which classes to emit",
+      "rows": [
+        {
+          "variant": "all rules, including weak classes",
+          "score_a": 0.27
+        },
+        {
+          "variant": "only reliable classes (used)",
+          "score_a": 0.41
+        }
+      ]
+    }
+  ],
+  "timing": [
+    {
+      "video": "C3902",
+      "duration": 317.8,
+      "part_a_sec": 147.9,
+      "part_b_sec": 439.1,
+      "budget_sec": 953.5
+    }
+  ]
+}

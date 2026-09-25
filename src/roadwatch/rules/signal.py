@@ -21,6 +21,12 @@ def _downstream_distance(foot: np.ndarray, line: np.ndarray, upstream_ref: np.nd
     return sign * side_of_line(foot, a, b) / np.linalg.norm(b - a)
 
 
+def _along_line(point: np.ndarray, line: np.ndarray) -> float:
+    """Position of a point's projection along the stop line (0 = first end, 1 = second end)."""
+    a, b = line
+    return float((point - a) @ (b - a) / ((b - a) @ (b - a)))
+
+
 def _upstream_reference(ctx: Context) -> np.ndarray:
     zone = next(iter(ctx.scene.queue_zones.values()))
     return zone.poly.mean(axis=0)
@@ -35,6 +41,8 @@ def red_light(ctx: Context) -> list[Event]:
             crossed = np.flatnonzero((d[1:] > 0) & (d[:-1] <= 0)) + 1
             if len(crossed) == 0 or d[0] > 0:
                 continue
+            if not -0.05 <= _along_line(tr.smooth_foot()[crossed[0]], sl["line"]) <= 1.05:
+                continue  # crossed the extension of the line, not the line itself
             tc = float(tr.t[crossed[0]])
             state = ctx.signal_at(sl["signal"], tc)[0]
             if state != RED or ctx.red_since(sl["signal"], tc) < RED_SETTLED_S:
@@ -61,7 +69,7 @@ def stop_line(ctx: Context) -> list[Event]:
             foot = tr.smooth_foot()
             d = _downstream_distance(foot, sl["line"], ref)
             still = tr.speed() < STILL_SPEED
-            over = (d > PAST_LINE_PX) & ~ctx.scene.in_intersection(foot)
+            over = (d > PAST_LINE_PX) & sl["zone"].contains(foot)
             for s, e in runs(tr.t, still & over, max_gap=0.6):
                 if e - s < MIN_STOP_S or ctx.signal_at(sl["signal"], s)[0] != RED:
                     continue

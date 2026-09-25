@@ -1,6 +1,7 @@
 """Annotated playback: boxes, trails, active events, signal state and risk, as a browser-playable MP4."""
 from __future__ import annotations
 
+from fractions import Fraction
 from typing import Callable
 
 import av
@@ -81,15 +82,29 @@ class Annotator:
 
 def render_video(video_path: str, out_path: str, annotator: Annotator, fps: float = 10.0,
                  size: tuple[int, int] = (1280, 720), progress: Callable[[float], None] | None = None,
-                 duration: float | None = None) -> None:
-    """Decode `video_path` at `fps`, annotate every frame, encode H.264 (yuv420p, browser-safe)."""
+                 duration: float | None = None,
+                 on_frame: Callable[[float, np.ndarray], None] | None = None) -> None:
+    """Decode `video_path` at ~`fps`, annotate every frame, encode H.264 (yuv420p, browser-safe).
+
+    The output frame rate is the true sampling rate of the decoded frames (e.g. 10000/1001 for
+    every third frame of 29.97 fps), so seeking in the annotated video matches source time.
+    `on_frame(t, annotated_scene_frame)` is called for every frame (thumbnails, posters).
+    """
+    times = annotator.obs.times
+    step = float(np.median(np.diff(times))) if len(times) > 1 else 1.0 / fps
+    rate = Fraction(1.0 / step).limit_denominator(1001)
     with av.open(out_path, mode="w", options={"movflags": "+faststart"}) as out:
-        stream = out.add_stream("libx264", rate=int(round(fps)))
+        stream = out.add_stream("libx264", rate=rate)
         stream.width, stream.height = size
         stream.pix_fmt = "yuv420p"
         stream.options = {"crf": "26", "preset": "veryfast"}
         for t, frame in iter_frames(video_path, target_fps=fps):
-            img = cv2.resize(annotator.draw(frame, t), size, interpolation=cv2.INTER_AREA)
+            if duration and t > duration:
+                break
+            annotated = annotator.draw(frame, t)
+            if on_frame is not None:
+                on_frame(t, annotated)
+            img = cv2.resize(annotated, size, interpolation=cv2.INTER_AREA)
             for packet in stream.encode(av.VideoFrame.from_ndarray(img, format="bgr24")):
                 out.mux(packet)
             if progress and duration:

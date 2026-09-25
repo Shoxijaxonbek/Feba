@@ -1,0 +1,43 @@
+{
+  "_mock": true,
+  "failures": [
+    {
+      "video": "C3902",
+      "label": "illegal_u_turn",
+      "start": 83.45,
+      "end": 113.88,
+      "kind": "false positive",
+      "title": "A 30-second \"U-turn\"",
+      "text": "A car waiting in the left-turn pocket crept forward for half a minute while its heading drifted by 150 degrees. The rule accumulated the drift. Next step: cap the manoeuvre at 12 s and require real displacement.",
+      "image": "data/failures/C3902_uturn.jpg"
+    },
+    {
+      "video": "C3902",
+      "label": "stopped_vehicle",
+      "start": 0.07,
+      "end": 317.78,
+      "kind": "false positive",
+      "title": "A parked car flagged for the whole video",
+      "text": "A car parked legally on the far kerb sits inside the area we traced as carriageway. The layout polygon needs a parking-bay cut-out.",
+      "image": null
+    },
+    {
+      "video": "C3902",
+      "label": "failure_to_yield",
+      "start": 163.13,
+      "end": 163.43,
+      "kind": "fragment",
+      "title": "Sub-second failure_to_yield blips",
+      "text": "When a car passes, the pedestrian's box flickers onto the roadway part of the zebra. These 0.3 s events can never reach tIoU 0.3 against a real label. A 1 s minimum duration removes them.",
+      "image": null
+    },
+    {
+      "video": "C3902",
+      "label": "red_light",
+      "kind": "missed",
+      "title": "Red-light runners on the far carriageway",
+      "text": "Vehicles on the far side are small and the tracker loses them inside the junction box, so the \"enters the box on red\" condition never completes.",
+      "image": null
+    }
+  ]
+}
