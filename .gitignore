@@ -1,0 +1,10 @@
+recources/
+samples/
+outputs/
+__pycache__/
+*.pyc
+.venv/
+*.part
+*.chunks.json
+website/node_modules/
+website/dist/
